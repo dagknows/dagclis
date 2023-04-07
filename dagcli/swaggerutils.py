@@ -13,12 +13,16 @@ def jp(obj):
 def is_param(word):
     return word[0] == "{" and word[-1] == "}"
 
-def swaggertotrie(swagger_path_or_dict: Union[Dict, str]):
+def load(swagger_path_or_dict: Union[Dict, str]):
+    """ Loads and parses a swagger definition either from a file at a given path or from a dictionary. """
     if type(swagger_path_or_dict) is str:
         parser = SwaggerParser(swagger_path = swagger_path_or_dict)
     else:
         parser = SwaggerParser(swagger_dict = swagger_path_or_dict)
+    return parser
 
+def to_trie(parser):
+    """ Processes the parsed swagger AST and builds a Trie of commands we will use to convert to Typer declarations. """
     root = TrieNode("")
     for path, pathspec in parser.paths.items():
         parts = [x.strip() for x in path.split("/") if x.strip()]
@@ -54,6 +58,6 @@ def swaggertotrie(swagger_path_or_dict: Union[Dict, str]):
             # We could probably do this via callbacks into the convert method
     return root
 
-def trietotyper(root: TrieNode):
+def to_typer(root: TrieNode):
     set_trace(context=20)
     pass
