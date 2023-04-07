@@ -9,6 +9,9 @@ class TrieNode:
         self.children = {}
         self.data = data or {}
 
+    def __repr__(self):
+        return self.path_to_parent(reduce = lambda a,b: a + "/" + b)
+
     def add(self, onestr: str):
         self.count += 1
         child = self.children.get(onestr, None)
@@ -49,12 +52,12 @@ class TrieNode:
         if leaf: leaf._deccount()
         return leaf is not None
 
-    def wordsofar(self, reduce=None):
+    def path_to_parent(self, reduce=None):
         if not reduce:
             reduce = lambda a,b: a+b
         if self.parent is None:
             return self.value
-        return reduce(self.parent.wordsofar(reduce), self.value)
+        return reduce(self.parent.path_to_parent(reduce), self.value)
 
     def _deccount(self):
         """ Reduces count of a node and if the count reaches 0 removes itself

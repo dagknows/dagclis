@@ -13,17 +13,15 @@ def jp(obj):
 def is_param(word):
     return word[0] == "{" and word[-1] == "}"
 
-def load(swagger_path_or_dict: Union[Dict, str]):
-    """ Loads and parses a swagger definition either from a file at a given path or from a dictionary. """
+def to_trie(swagger_path_or_dict: Union[Dict, str]):
+    """ Processes the parsed swagger AST and builds a Trie of commands we will use to convert to Typer declarations. """
     if type(swagger_path_or_dict) is str:
         parser = SwaggerParser(swagger_path = swagger_path_or_dict)
     else:
         parser = SwaggerParser(swagger_dict = swagger_path_or_dict)
-    return parser
 
-def to_trie(parser):
-    """ Processes the parsed swagger AST and builds a Trie of commands we will use to convert to Typer declarations. """
     root = TrieNode("")
+    leafs = []
     for path, pathspec in parser.paths.items():
         parts = [x.strip() for x in path.split("/") if x.strip()]
         print("Processing: ", path, parts)
@@ -31,21 +29,58 @@ def to_trie(parser):
         # Treat parts based on whether it is a "plain" word or surrounded by "{}"
         # denoting a parameter (also affects how it sets req params)
         node = root
+        # Param names we are extracting out
+        params = []
         for p in parts:
-            node = node.add(p)
-            node.data["type"] = "static"
             if is_param(p):
+                params.append(p[1:-1])
                 # Mark this node as a required parameter
-                node.data["type"] = "reqparam"
-                node.data["param_name"] = p[1:-1]
+                # node.data["type"] = "reqparam"
+                # node.data["param_name"] = p[1:-1]
+            else:
+                node = node.add(p)
+                node.data["type"] = "static"
 
         # Now all the "prefix parameters" have been matched, 
 
+        # See if node ends with an action, ie: dags:batchCreate
+        # here "batchCreate" is the action
+        nodeparts = node.value.split(":")
+        custaction = "_".join(nodeparts[1:])
+        is_action = len(nodeparts) > 1
+
         # now look at the "method" name
         for method, methodinfo in pathspec.items():
-            methnode = node.add(method)
+            # which "method" should we use?
+            # use the get/post/patch etc to use as is
+            methname = method
+
+            if is_action:
+                methname = custaction
+                if custaction in node.children:
+                    # we already have a custom action so prefix with method
+                    methname = method + "_" + methname
+
+            methnode = node.add(methname)
+            methnode.terminal = True
+
+            # We are a method node
             methnode.data["type"] = "method"
-            methnode.data["paraminfo"] = methodinfo["parameters"]
+
+            # The http VERB to be used for this method
+            methnode.data["verb"] = method
+
+            # Full path for this method as is
+            methnode.data["path"] = path
+
+            # Params extracted from the "path" - will be used to contruct
+            # the path to hit our endpoint with
+            methnode.data["path_params"] = params
+
+            # Body params can be sent as http body or as query parameters
+            # based on whether the verb allows http body or not
+            methnode.data["bodyparams"] = methodinfo["parameters"]
+            leafs.append(methnode)
 
             # Here we can have "flags" if this request has a body object (method name doesnt matter).
             # If our body is say {a: A, b: B, c: C} then we can have 3 flags
@@ -56,8 +91,16 @@ def to_trie(parser):
             #
             # Here is also a good opportunity to let these have "default" values
             # We could probably do this via callbacks into the convert method
-    return root
+    return root, leafs, parser
 
-def to_typer(root: TrieNode):
+def to_typer(root: TrieNode, parser):
+    # go to the first root that has > 1 children
+    realroot = root
+    while len(realroot.children) == 1:
+        realroot = realroot.children[list(realroot.children.keys())[0]]
     set_trace(context=20)
     pass
+
+def process(swagger_path_or_dict: Union[Dict, str]):
+    root, leafs, parser = to_trie(swagger_path_or_dict)
+    to_typer(root, parser)

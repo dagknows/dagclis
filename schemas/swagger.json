@@ -290,6 +290,64 @@
         ]
       }
     },
+    "/v1/dags:action2": {
+      "get": {
+        "summary": "Testing different actions",
+        "operationId": "DagService_GetDags2",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apigatewayGetDagsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "ids",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          }
+        ],
+        "tags": [
+          "DagService"
+        ]
+      }
+    },
+    "/v1/dags:action3": {
+      "post": {
+        "summary": "Testing different actions",
+        "operationId": "DagService_GetDags3",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apigatewayGetDagsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "DagService"
+        ]
+      }
+    },
     "/v1/dags:batchGet": {
       "get": {
         "summary": "Batch gets multiple dags.",

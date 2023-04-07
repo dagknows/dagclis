@@ -1,19 +1,8 @@
 
-import typer
+import click
 
-app = typer.Typer()
-
-@app.command()
-def hello(name: str):
-    print(f"Hello {name}")
-
-
-@app.command()
-def goodbye(name: str, formal: bool = False):
-    if formal:
-        print(f"Goodbye Ms. {name}. Have a good day.")
-    else:
-        print(f"Bye {name}!")
+@cli.group()
+def cli(): pass
 
 if __name__ == "__main__":
-    app()
+    cli(obj={})
