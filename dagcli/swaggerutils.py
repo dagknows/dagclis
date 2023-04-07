@@ -16,13 +16,13 @@ def is_param(word):
 def to_trie(swagger_path_or_dict: Union[Dict, str]):
     """ Processes the parsed swagger AST and builds a Trie of commands we will use to convert to Typer declarations. """
     if type(swagger_path_or_dict) is str:
-        parser = SwaggerParser(swagger_path = swagger_path_or_dict)
+        ast = SwaggerParser(swagger_path = swagger_path_or_dict)
     else:
-        parser = SwaggerParser(swagger_dict = swagger_path_or_dict)
+        ast = SwaggerParser(swagger_dict = swagger_path_or_dict)
 
     root = TrieNode("")
     leafs = []
-    for path, pathspec in parser.paths.items():
+    for path, pathspec in ast.paths.items():
         parts = [x.strip() for x in path.split("/") if x.strip()]
         print("Processing: ", path, parts)
 
@@ -81,19 +81,9 @@ def to_trie(swagger_path_or_dict: Union[Dict, str]):
             # based on whether the verb allows http body or not
             methnode.data["bodyparams"] = methodinfo["parameters"]
             leafs.append(methnode)
+    return leafs, ast
 
-            # Here we can have "flags" if this request has a body object (method name doesnt matter).
-            # If our body is say {a: A, b: B, c: C} then we can have 3 flags
-            # --a, --b and --c
-            # and we could use them as: --a=3, --a=$ENV_VAR, --b=file://contents_of_file or --c="string"
-            # In the case of "c" we will treat the param type of c be a string or a json string depending on the
-            # type of param in the actual spec!
-            #
-            # Here is also a good opportunity to let these have "default" values
-            # We could probably do this via callbacks into the convert method
-    return root, leafs, parser
-
-def to_typer(root: TrieNode, parser):
+def to_typer(root: TrieNode, ast):
     # go to the first root that has > 1 children
     realroot = root
     while len(realroot.children) == 1:
@@ -102,5 +92,6 @@ def to_typer(root: TrieNode, parser):
     pass
 
 def process(swagger_path_or_dict: Union[Dict, str]):
-    root, leafs, parser = to_trie(swagger_path_or_dict)
-    to_typer(root, parser)
+    leafs, ast = to_trie(swagger_path_or_dict)
+    root = leafs[0].root
+    to_typer(root, ast)

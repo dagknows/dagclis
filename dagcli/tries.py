@@ -5,6 +5,7 @@ class TrieNode:
         self.value = value
         self.terminal = terminal
         self.parent = parent
+        self.root = None if not parent else parent.root
         self.count = 0
         self.children = {}
         self.data = data or {}
