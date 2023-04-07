@@ -826,6 +826,7 @@
           "type": "string"
         }
       },
+      "description": "Actions are just bits of well \"actions\" that can be performed.",
       "title": "Action"
     },
     "apigatewayCreateDagResponse": {
@@ -987,6 +988,7 @@
           }
         }
       },
+      "description": "List of edges for a given source node.  Edges are denoted as a destination\nedge and their metadata.",
       "title": "EdgeList"
     },
     "apigatewayExecuteDagResponse": {
@@ -1047,7 +1049,9 @@
       "title": "Execution"
     },
     "apigatewayExecutionSchedule": {
-      "type": "object"
+      "type": "object",
+      "description": "A schedule of how and when Executions are to run and if/how they repeat.",
+      "title": "ExecutionSchedule"
     },
     "apigatewayGetDagResponse": {
       "type": "object",
@@ -1277,10 +1281,13 @@
           "type": "string",
           "description": "The key/pointer string that subsequent List requests should pass to\ncontinue the pagination."
         }
-      }
+      },
+      "description": "Standard way to pass pagination related responses, eg the next page key\nthat can be passed on a paginated request to get the \"next page\" of results."
     },
     "apigatewayPostExecution": {
-      "type": "object"
+      "type": "object",
+      "description": "NO description for PostExecution yet.",
+      "title": "PostExecution"
     },
     "apigatewaySession": {
       "type": "object",
