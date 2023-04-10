@@ -127,12 +127,12 @@ class HttpCommand(Command):
         bodyparams = node.data.get("bodyparams", {})
         ast = node.data.get("ast", {})
 
-        path_param_indices = data["path_param_indices"]
-        if data["path_param_indices"]:
+        param_mappings = data["param_mappings"]
+        if param_mappings:
             parts = path.split("/")
             if path[0] == "/":
                 parts = parts[1:]
-            for pp, val in path_param_indices.items():
+            for pp, val in param_mappings.items():
                 parts[val] = ctx.cmd_stack[val].name
             path = "/".join(parts)
 
