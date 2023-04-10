@@ -63,7 +63,7 @@ class CommandContext(object):
         flagdef = self.cli.get_flag_def(flagname)
         if flagname not in self.flag_values:
             self.flag_values[flagname] = FlagVals(flagname, flagdef)
-        flag = self.flags[flagname]
+        flag = self.flag_values[flagname]
         flag.add(self.curr_stack_index, value)
         return flag
 
@@ -73,7 +73,7 @@ class CommandContext(object):
         if flagname in self.flag_values:
             flagvals = self.flag_values[flagname]
             if flagvals.values:
-                return flgvals.values[0][1]
+                return flagvals.values[0][1]
 
         if try_external:
             externs = flagdef.external_values()
@@ -205,13 +205,13 @@ class HttpCommand:
 
         payload = {}
         # Read payload from input file or json
-        infile = ctx.get_flag_values("file")
+        infile = ctx.get_flag_value("file")
         if infile:
             payload = json.loads(open(infile).read())
 
-        injson = ctx.get_flag_values("json")
+        injson = ctx.get_flag_value("json")
         if injson:
-            payload = json.loads(injson[0])
+            payload = json.loads(injson)
 
         read_stdin = ctx.get_flag_value("stdin")
         if read_stdin:
@@ -339,23 +339,24 @@ class CLI(object):
                 else:
                     self.no_method_found(ctx, currarg)
 
-        lastnode = ctx.last_node
         if ctx.flag_was_set("help"):
             self.show_usage(ctx)
-        else:
-            # We first go through the context and let all flags do their thing to the ctx
-            self.apply_context_flags(ctx)
-            runner = lastnode.data.get("runner", None)
-            if runner and type(runner) is str:
-                runner = self.get_runner(runner)
+            return 0
 
-            if not runner:
-                self.show_usage(ctx)
-                self.invalid_command(ctx)
-                return -1
+        # We first go through the context and let all flags do their thing to the ctx
+        lastnode = ctx.last_node
+        self.apply_context_flags(ctx)
+        runner = lastnode.data.get("runner", None)
+        if runner and type(runner) is str:
+            runner = self.get_runner(runner)
 
-            result = runner(lastnode, ctx)
-            return 0# result
+        if not runner:
+            self.show_usage(ctx)
+            self.invalid_command(ctx)
+            return -1
+
+        result = runner(lastnode, ctx)
+        return 0# result
 
     def apply_context_flags(self, ctx: CommandContext):
         # First go through all registerd flags and for those that are required
@@ -374,6 +375,6 @@ class CLI(object):
         # Step 2 - Go through flags that were actually specified and apply them
         # In order of their set
         for flagname, flagvals in ctx.flag_values.items():
-            flagdef = flagvals.flagdefs
+            flagdef = flagvals.flagdef
             if flagdef and flagdef.handler and flagvals.has_value:
                 flagdef.handler(ctx, flagdef, *flagvals.values)

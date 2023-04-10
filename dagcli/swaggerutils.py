@@ -17,6 +17,9 @@ def make_cli(swagger_path_or_dict: Union[Dict, str]):
 
 def to_trie(swagger_path_or_dict: Union[Dict, str]):
     """ Processes the parsed swagger AST and builds a Trie of commands we will use to convert to Typer declarations. """
+    import warnings
+    from swagger_spec_validator.common import SwaggerValidationWarning
+    warnings.simplefilter("ignore", SwaggerValidationWarning)
     if type(swagger_path_or_dict) is str:
         ast = SwaggerParser(swagger_path = swagger_path_or_dict)
     else:
