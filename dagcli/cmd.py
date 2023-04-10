@@ -162,7 +162,6 @@ class HttpCommand:
             lines = list(itertools.takewhile(lambda x: True, sys.stdin))
             payload = json.loads("\n".join(lines))
 
-        set_trace()
         if needs_body and not payload:
             schemaref = bodyparams.get("body", {}).get("schema", {}).get("$ref", "")
             schemaname = schemaref.split("/")
@@ -173,7 +172,6 @@ class HttpCommand:
             else:
                 print(f"API Request: {method} {url} needs a body")
 
-        set_trace()
         methfunc = getattr(requests, method)
         if ctx.get_flag_values("log_request"):
             print(f"API Request: {method} {url} ", headers, payload)
