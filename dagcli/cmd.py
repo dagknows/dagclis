@@ -113,15 +113,11 @@ class FlagDef:
 
 class Command:
     """ Generic command interface. """
-    def __init__(self, node):
-        self.node = node
-
-    def __call__(self, ctx: CommandContext):
+    def __call__(self, node, ctx: CommandContext):
         pass
 
-class HttpCommand(Command):
-    def __call__(self, ctx: CommandContext):
-        node = self.node
+class HttpCommand:
+    def __call__(self, node, ctx: CommandContext):
         data = node.data
         path = data["path"]
         bodyparams = node.data.get("bodyparams", {})
@@ -187,6 +183,9 @@ class CLI(object):
     """ Represents the CLI object managing a trie of commands as well as an activation context on each run. """
     def __init__(self, root):
         self.root = root
+
+    def get_runner(self, runner_name):
+        return HttpCommand()
 
     def add_flag(self, flag):
         self.global_flag_defs.append(flag)
@@ -271,10 +270,14 @@ class CLI(object):
         if ctx.get_flag_values("help"):
             self.show_usage(ctx)
         else:
-            cmd = lastnode.data.get("cmd", None)
-            if not cmd:
+            runner = lastnode.data.get("runner", None)
+            if runner and type(runner) is str:
+                runner = self.get_runner(runner)
+
+            if not runner:
                 self.show_usage(ctx)
                 self.invalid_command(ctx)
-            else:
-                result = cmd(ctx)
-                return 0# result
+                return -1
+
+            result = runner(lastnode, ctx)
+            return 0# result

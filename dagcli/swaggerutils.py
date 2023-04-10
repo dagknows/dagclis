@@ -87,10 +87,12 @@ def default_command_strategy(ast, root, path, pathspec, method):
     methnode = root
     for part, as_param in trieparts:
         methnode = methnode.add(part, as_param)
-    return create_method(methnode, method, path, pathspec, ast, param_mappings)
+    return populate_method_data(methnode, method, path, pathspec, ast, param_mappings)
 
-def create_method(methnode, method, path, pathspec, ast, param_mappings):
-    # We are a method node
+def populate_method_data(methnode, method, path, pathspec, ast, param_mappings, runner="HttpCommand"):
+    # Given a method node already created at a certain trie path, 
+    # populates its data with the path/method parameters
+
     if methnode.data.get("type"):
         set_trace()
         assert False, "Type should *not* be set here?"
@@ -113,6 +115,5 @@ def create_method(methnode, method, path, pathspec, ast, param_mappings):
     # based on whether the verb allows http body or not
     methodinfo = pathspec[method]
     methnode.data["bodyparams"] = methodinfo["parameters"]
-
-    methnode.data["cmd"] = HttpCommand(methnode)
+    methnode.data["runner"] = runner
     return methnode
