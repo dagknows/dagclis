@@ -1,4 +1,6 @@
 
+import sys
+import itertools
 from collections import deque
 import requests
 from ipdb import set_trace
@@ -155,6 +157,12 @@ class HttpCommand:
         if injson:
             payload = json.loads(injson[0])
 
+        read_stdin = ctx.get_flag_values("stdin")
+        if read_stdin:
+            lines = list(itertools.takewhile(lambda x: True, sys.stdin))
+            payload = json.loads("\n".join(lines))
+
+        set_trace()
         if needs_body and not payload:
             schemaref = bodyparams.get("body", {}).get("schema", {}).get("$ref", "")
             schemaname = schemaref.split("/")

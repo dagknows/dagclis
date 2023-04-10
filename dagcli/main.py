@@ -32,6 +32,15 @@ cli.global_flag_defs = [
             help_text="Whether to log API responses globally",
             valtype=str,
             default_value=True),
+    swaggerutils.FlagDef("stdin",
+                         help_text="Reads the base input from standard input before applying any field path specific overrides",
+                         valtype=str, required=False, default_value=False),
+    swaggerutils.FlagDef("json",
+                         help_text="Reads base input from a json string before applying any field path specific overrides",
+                         valtype="json", required=False, default_value=None),
+    swaggerutils.FlagDef("file",
+                         help_text="Reads base input from an input file containing the JSON payload before applying any field path specific overrides",
+                         valtype=str, required=False, default_value=None),
 ]
 
 if __name__ == "__main__":
