@@ -29,7 +29,7 @@ def to_trie(swagger_path_or_dict: Union[Dict, str]):
     leafs = []
     for path, pathspec in ast.paths.items():
         parts = [x.strip() for x in path.split("/") if x.strip()]
-        print("Processing: ", path, parts)
+        # print("Processing: ", path, parts)
 
         # Start from the root and add parts of the path spec into the trie
         node=root
@@ -142,7 +142,7 @@ class CommandContext(object):
         or the default value from where ever it is specified (eg file, env var etc).
         """
         if flag in self.flags:
-            return self.flags[flag], True
+            return self.flags[flag]
 
         for node,_ in self.cmd_nodes:
             for fd in node.data.get("flagdefs", []):
@@ -183,7 +183,7 @@ class FlagDef:
 
     def load(self, firstval=False):
         """ Load from a bunch of places first. """
-        print("Loading default value for: ", self.name)
+        # print("Loading default value for: ", self.name)
         values = []
 
         # First read env vars
@@ -218,6 +218,9 @@ class HttpCommand(Command):
         node = self.node
         data = node.data
         path = data["path"]
+        bodyparams = node.data.get("bodyparams", {})
+        ast = node.data.get("ast", {})
+
         path_param_indices = data["path_param_indices"]
         if data["path_param_indices"]:
             parts = path.split("/")
@@ -228,6 +231,7 @@ class HttpCommand(Command):
             path = "/".join(parts)
 
         method = data["verb"].lower()
+        needs_body = method not in ("get", "delete")
         auth_token = ctx.get_flag_values("AuthToken")[0]
         apigw_host = ctx.get_flag_values("ApiGatewayHost")[0]
         dk_host = ctx.get_flag_values("ReqRouterHost")[0]
@@ -238,38 +242,46 @@ class HttpCommand(Command):
         if apigw_host.endswith("/"): apigw_host = apigw_host[:-1]
         if path.startswith("/"): path = path[1:]
         url = f"{apigw_host}/{path}"
+
         payload = {}
+        # Read payload from input file or json
+        infile = ctx.get_flag_values("file")
+        if infile:
+            payload = json.loads(open(infile).read())
+
+        injson = ctx.get_flag_values("json")
+        if injson:
+            payload = json.loads(injson[0])
+
+        if needs_body and not payload:
+            schemaref = bodyparams.get("body", {}).get("schema", {}).get("$ref", "")
+            schemaname = schemaref.split("/")
+            if schemaname:
+                defs = ast.specification["definitions"]
+                print(f"API Request: {method} {url} needs a body of type: ", defs[schemaname[-1]].get("title", schemaname))
+                return -1
+            else:
+                print(f"API Request: {method} {url} needs a body")
+
+        set_trace()
         methfunc = getattr(requests, method)
-        if method == "get" or method == "delete":
-            resp = methfunc(url, params=payload, headers=headers)
-        else:
+        if ctx.get_flag_values("log_request"):
+            print(f"API Request: {method} {url} ", headers, payload)
+        if needs_body:
             resp = methfunc(url, json=payload, headers=headers)
-        return resp.json()
+        else:
+            resp = methfunc(url, params=payload, headers=headers)
+        out = resp.json()
+        if ctx.get_flag_values("log_response"):
+            print("API Response: ")
+            pprint(out)
+        return out
 
 class CLI(object):
     """ Represents the CLI object that is based off a swagger spec. """
     def __init__(self, leafs):
         self.leafs = leafs
         self.root = self.leafs[0].root
-
-        # Flag definitions application for all commands
-        self.global_flag_defs = [
-            FlagDef("AuthToken",
-                    help_text="Auth token for accessing the API gateway",
-                    valtype=str,
-                    required=True,
-                    envvars=["DagKnowsAuthToken"]),
-            FlagDef("ReqRouterHost",
-                    help_text="Request router host",
-                    valtype=str,
-                    default_value="https://demo.dagknows.com:8443",
-                    envvars=["DagKnowsReqRouterHost"]),
-            FlagDef("ApiGatewayHost",
-                    help_text="API Gatway host fronting the new API",
-                    valtype=str,
-                    default_value="http://localhost:8080/api",
-                    envvars=["DagKnowsApiGatewayHost"]),
-        ]
 
     def add_flag(self, flag):
         self.global_flag_defs.append(flag)
@@ -279,7 +291,9 @@ class CLI(object):
         print(f"Usage: {' '.join(ctx.cmd_parts)} OPTIONS ARGS...")
         print("Available Commands: ")
         for key in ctx.last_node.children.keys():
-            print(key)
+            print(f"    - {key}")
+        if ctx.last_node.param_trie:
+            print("    - <PARAM>")
 
     def show_help(self):
         pass
@@ -360,4 +374,5 @@ class CLI(object):
                 self.show_usage(ctx)
                 self.invalid_command(ctx)
             else:
-                return cmd(ctx)
+                result = cmd(ctx)
+                return 0# result
