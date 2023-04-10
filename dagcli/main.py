@@ -1,8 +1,9 @@
+import sys, json
+from dagcli import swaggerutils
 
-import click
-
-@cli.group()
-def cli(): pass
+from pkg_resources import resource_stream
+resstream = resource_stream("dagcli", "schemas/swagger.json")
+cli = swaggerutils.make_cli(json.load(resstream))
 
 if __name__ == "__main__":
-    cli(obj={})
+    cli()

@@ -9,5 +9,5 @@ build:
 	python -m build . --wheel
 
 test:
-	coverage run -m unittest tests/*.py
+	coverage run --omit './env/*' --omit '/usr/*' -m unittest tests/*.py
 	coverage report

@@ -101,7 +101,7 @@
         "parameters": [
           {
             "name": "body",
-            "description": "Dag being updated",
+            "description": "Dag being created",
             "in": "body",
             "required": true,
             "schema": {
@@ -290,7 +290,7 @@
         ]
       }
     },
-    "/v1/dags:action2": {
+    "/v1/dags:action2:plus1": {
       "get": {
         "summary": "Testing different actions",
         "operationId": "DagService_GetDags2",

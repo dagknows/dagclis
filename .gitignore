@@ -1,6 +1,7 @@
 .pyc
 build
 .coverage
+env
 *.egg-info
 __pycache__
 dist

@@ -1,24 +1,71 @@
 from typing import List
+from ipdb import set_trace
 
 class TrieNode:
     def __init__(self, value, terminal=False, parent=None, data=None):
         self.value = value
         self.terminal = terminal
         self.parent = parent
-        self.root = None if not parent else parent.root
         self.count = 0
-        self.children = {}
         self.data = data or {}
+        self.children = {}
+
+        # Children match explicit/literal values.
+        # Every node can dedicate "one" extra child to a param
+        # This itself is the start of a trie if a param has matched
+        # This is great for trees like:
+        # Root -> collection1 -> create
+        # Root -> collection1 -> list
+        # Root -> collection1 -> <id> -> details
+        # Root -> collection1 -> <id> -> update
+        # Root -> collection1 -> <id> -> execs -> create
+        #
+        # Here the collection1 node would have a 2 children - "create" and "list"
+        # and a param child - "id" which would match "anything else" other than static
+        # children.  We can extend this idea to have multiple param trie children to
+        # suit different arities.
+        # eg param1 <id1> <id2> get
+        # eg param1 <id1> create
+        # 
+        # Here ID 1 would have a trie node as its child
+        self.param_trie = None
+        self._is_param_node = False
+
+    @property
+    def is_param_node(self):
+        return self._is_param_node
+
+    @property
+    def root(self):
+        if self.parent == None: return self
+        else: return self.parent.root
 
     def __repr__(self):
-        return self.path_to_parent(reduce = lambda a,b: a + "/" + b)
+        return self.path_to_root(reduce = lambda a,b: a + "/" + b)
 
-    def add(self, onestr: str):
+    def add(self, onestr: str, as_param=False):
         self.count += 1
-        child = self.children.get(onestr, None)
-        if not child:
-            child = TrieNode(onestr, False, self)
-            self.children[onestr] = child
+        if as_param:
+            if self.param_trie:
+                # At this point we already have a param
+                # Since params of all names are the "same" we can accept this as is
+                # What needs to be done is the bound variable needs to be set correctly
+                # because books/{book_id}/pages and books/{book.id}/pages/delete are the same
+                # They just set some variable that is decided by the pages or /pages/delete
+                # handler - it can do this by using a lexical distance of bindings instead
+                # of names
+                return self.param_trie
+            else:
+                child = TrieNode(onestr, False, self)
+                child._is_param_node = True
+                self.param_trie = child
+            return self.param_trie
+        else:
+            child = self.children.get(onestr, None)
+            if not child:
+                # we are good to add a child
+                child = TrieNode(onestr, False, self)
+                self.children[onestr] = child
         return child
 
     def add_strings(self, strings: List[str], offset=0):
@@ -53,12 +100,17 @@ class TrieNode:
         if leaf: leaf._deccount()
         return leaf is not None
 
-    def path_to_parent(self, reduce=None):
+    def path_to_ancestor(self, node=None, reduce=None):
         if not reduce:
             reduce = lambda a,b: a+b
         if self.parent is None:
             return self.value
-        return reduce(self.parent.path_to_parent(reduce), self.value)
+        elif node == self:
+            return self.value
+        return reduce(self.parent.path_to_ancestor(node, reduce), self.value)
+
+    def path_to_root(self, reduce=None):
+        return self.path_to_ancestor(None, reduce)
 
     def _deccount(self):
         """ Reduces count of a node and if the count reaches 0 removes itself

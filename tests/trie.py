@@ -125,7 +125,7 @@ class TestMethods(unittest.TestCase):
                                                           'b': {'terminal': True, 'count': 1,
                                                                 'children': {}}}}}}}}}})
 
-        self.assertEqual(tn.find_leaf("apple").path_to_parent(), "apple")
+        self.assertEqual(tn.find_leaf("apple").path_to_root(), "apple")
 if __name__ == '__main__':
     # Run with python -m unittest *.py
     unittest.main()
