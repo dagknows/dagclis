@@ -26,7 +26,7 @@ def to_trie(swagger_path_or_dict: Union[Dict, str]):
     leafs = []
     for path, pathspec in ast.paths.items():
         for mindex, (method, methodinfo) in enumerate(pathspec.items()):
-            leaf_meth_node = default_command_strategy(ast, root, path, pathspec, method, methodinfo)
+            leaf_meth_node = default_command_strategy(ast, root, path, pathspec, method)
             leafs.append(leaf_meth_node)
     return root, leafs
 
@@ -79,7 +79,7 @@ def path_to_trie_path(path, pathspec, method):
         trieparts.append((methname, False))
     return trieparts, method_name_used, param_mappings
 
-def default_command_strategy(ast, root, path, pathspec, method, methodinfo):
+def default_command_strategy(ast, root, path, pathspec, method):
     """ Command strategies are used to convert a request path spec into a command node. """
     trieparts, method_name_used, param_mappings = path_to_trie_path(path, pathspec, method)
     # print("Processing: ", parts)
@@ -87,7 +87,9 @@ def default_command_strategy(ast, root, path, pathspec, method, methodinfo):
     methnode = root
     for part, as_param in trieparts:
         methnode = methnode.add(part, as_param)
+    return create_method(methnode, method, path, pathspec, ast, param_mappings)
 
+def create_method(methnode, method, path, pathspec, ast, param_mappings):
     # We are a method node
     if methnode.data.get("type"):
         set_trace()
@@ -109,6 +111,7 @@ def default_command_strategy(ast, root, path, pathspec, method, methodinfo):
 
     # Body params can be sent as http body or as query parameters
     # based on whether the verb allows http body or not
+    methodinfo = pathspec[method]
     methnode.data["bodyparams"] = methodinfo["parameters"]
 
     methnode.data["cmd"] = HttpCommand(methnode)
