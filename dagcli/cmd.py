@@ -157,7 +157,7 @@ class HttpCommand:
         if injson:
             payload = json.loads(injson[0])
 
-        read_stdin = ctx.get_flag_values("stdin")
+        read_stdin = ctx.get_flag_values("stdin")[0]
         if read_stdin:
             lines = list(itertools.takewhile(lambda x: True, sys.stdin))
             payload = json.loads("\n".join(lines))
