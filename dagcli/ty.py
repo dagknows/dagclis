@@ -1,135 +1,124 @@
 import typer
+import requests
+from pprint import pprint
+from typing import List
 
-def process(swagger_path_or_dict: Union[Dict, str]):
-    leafs, ast = to_rich_trie(swagger_path_or_dict)
-    root = leafs[0].root
-    realroot = root
-    while len(realroot.children) == 1:
-        realroot = realroot.children[list(realroot.children.keys())[0]]
-    rootapp = typer.Typer()
-    for leaf in leafs:
-        ensure_command_at_leaf(ast, leaf, realroot, rootapp)
+app = typer.Typer(pretty_exceptions_show_locals=False)
+
+@app.callback()
+def common_params(ctx: typer.Context,
+                  apigw_host: str = typer.Option("http://localhost:8080/api", envvar='DagKnowsApiGatewayHost', help='API endpoint for our CLI to reach'),
+                  reqrouter_host : str = typer.Option("https://demo.dagknows.com:8443", envvar='DagKnowsReqRouterHost', help='Environment for our API GW to hit'),
+                  log_request: str = typer.Option(False, help='Enables logging of requests'),
+                  log_response: str = typer.Option(False, help='Enables logging of responses'),
+                  auth_token: str = typer.Option(..., envvar='DagKnowsAuthToken', help='AuthToken for accessing DagKnows')):
+    ctx.obj = {
+        "apigw_host": apigw_host,
+        "reqrouter_host": reqrouter_host,
+        "auth_token": auth_token,
+        "log_request": log_request,
+        "log_response": log_response,
+        "headers": {
+            "Authorization": f"Bearer {auth_token}",
+            "DagKnowsReqRouterHost": reqrouter_host,
+        }
+    }
+
+def newapi(ctx: typer.Context, path, payload=None, method = ""):
+    url = ctx.obj["apigw_host"]
+    method = method.lower()
+    headers = ctx.obj["headers"]
+    if not method.strip():
+        if payload: method = "post"
+        else: method = "get"
+    if path.startswith("/"):
+        path = path[1:]
+    url = f"{url}/{path}"
+    methfunc = getattr(requests, method)
+    if ctx.obj["log_request"]:
+        print(f"API Request: {method.upper()} {url}: ", payload)
+    if payload:
+        if method == "get":
+            resp = methfunc(url, params=payload, headers=headers)
+        else:
+            resp = methfunc(url, json=payload, headers=headers)
+    else:
+        resp = methfunc(url, headers=headers)
+    # print(json.dumps(resp.json(), indent=4))
+    result = resp.json()
+    if ctx.obj["log_response"]:
+        print("API Response: ", pprint(result))
+    return result
+
+def dags():
+    app = typer.Typer()
+
+    @app.command()
+    def create(ctx: typer.Context,
+               title: str = typer.Option(..., help = "Title of the new Dag"),
+               description: str = typer.Option("", help = "Description string for your Dag")):
+        newapi(ctx, "/v1/dags", {
+            "title": title,
+            "description": description,
+        }, "POST")
+
+    @app.command()
+    def delete(ctx: typer.Context, dag_ids: List[str] = typer.Argument(..., help = "List of ID of the Dags to be deleted")):
+        for dagid in dag_ids:
+            newapi(ctx, f"/v1/dags/{dagid}", "DELETE")
+
+    @app.command()
+    def get(ctx: typer.Context, dag_ids: List[str] = typer.Argument(None, help = "IDs of the Dags to be fetched")):
+        if not dag_ids:
+            newapi(ctx, "/v1/dags", { }, "GET")
+        elif len(dag_ids) == 1:
+            newapi(ctx, f"/v1/dags/{dag_ids[0]}", { }, "GET")
+        else:
+            newapi(ctx, "/v1/dags:batchGet", { "ids": dag_ids }, "GET")
+
+    @app.command()
+    def search(ctx: typer.Context, title: str = typer.Option("", help = "Title to search for Dags by")):
+        return newapi(ctx, "/v1/dags", {
+            "title": title,
+        }, "GET")
+
+    @app.command()
+    def modify(ctx: typer.Context, dag_id: str = typer.Argument(..., help = "ID of the dag to be updated"),
+               title: str = typer.Option(None, help="New title to be set for the Dag"),
+               description: str = typer.Option(None, help="New description to be set for the Dag")):
+
+        update_mask = []
+        params = {}
+        if title: 
+            update_mask.append("title")
+            params["title"] = title
+        if description: 
+            update_mask.append("description")
+            params["description"] = description
+
+        newapi(ctx, f"/v1/dags/{dag_id}", {
+            "dag": params,
+            "update_mask": ",".join(update_mask),
+        }, "PATCH")
+
     return app
 
-def create_function(func_name, func_args, func_body, func_params=None):
-    func_str = f"def {func_name}({func_args}): \n {func_body}"
-    exec(func_str)
-    new_func = locals()[func_name]
-    if func_params is not None:
-        for param, (default, annotation) in func_params.items():
-            new_func.__annotations__[param] = annotation
-            new_func.__defaults__ += (default,)
-    return new_func
+def nodes():
+    app = typer.Typer()
+    return app
 
-def ensure_app_at_node(node: TrieNode, realroot: TrieNode, rootapp: typer.Typer): 
-    if "app" not in node.data:
-        parentapp = rootapp
-        if node.parent != None and node != realroot:    # we are at the root
-            parentapp = ensure_app_at_node(node.parent, realroot, rootapp)
-        node.data["app"] = currapp = typer.Typer()
-        parentapp.add_typer(currapp, name=node.value)
-    return node.data["app"]
+def sessions():
+    app = typer.Typer()
+    return app
 
-def eval_type_of(field_path: List[str], bodyparams):
-    return str, "str"
+def execs():
+    app = typer.Typer()
+    return app
 
-def make_request(ctx, path, method):
-    # Construct the http request and call it here based on all args passed
-    ast = ctx.obj["swaggerast"]
-    set_trace()
+app.add_typer(dags(), name="dags")
+app.add_typer(sessions(), name="sessions")
+app.add_typer(nodes(), name="nodes")
+app.add_typer(execs(), name="execs")
 
-def nested_schema_field_paths(ast, schemaref, childkey):
-    modelname = schemaref.split("/")[-1]
-    schema = ast.specification["definitions"][modelname]
-    if "properties" in schema:
-        props = schema["properties"]
-        yield from nested_field_paths(ast, props, childkey)
-    elif schema.get("type", None) == "object":
-        yield childkey, object, "object", None, schema.get("description", "")
-    else:
-        set_trace()
-        pass
-
-def nested_field_paths(ast, obj, keysofar=""):
-    for key, value in obj.items():
-        if value.get("in", None) == "path": continue
-
-        childkey = key
-        if keysofar and value.get("in", None) != "body":
-            childkey = keysofar + "." + childkey
-
-        # Path params dont need to be passed in flags
-        if "schema" in value:
-            schemaref = value["schema"]["$ref"]
-            yield from nested_schema_field_paths(ast, schemaref, childkey)
-            # have a nested object
-        elif "type" in value:
-            if value["type"] == "string":
-                yield childkey, str, "str", None, value.get("description", "")
-            elif value["type"] == "array":
-                yield childkey, List[str], "List[str]", [], value.get("description", "")
-            else:
-                set_trace()
-        elif "$ref" in value:
-            yield from nested_schema_field_paths(ast, value["$ref"], childkey)
-        else:
-            set_trace()
-            print("No Type")
-
-def ensure_command_at_leaf(ast, leaf: TrieNode, realroot: TrieNode, rootapp):
-    if leaf.data.get("appcmd", None):
-        set_trace()
-        print("This is being called twice.  Is this right?")
-    parent_app = ensure_app_at_node(leaf, realroot, rootapp)
-
-    # use the leaf params etc to create our "request" caller
-    bodyparams = leaf.data["bodyparams"]
-
-    httpverb = leaf.data["verb"].upper()
-    httppath = leaf.data["path"]
-
-    func_name = leaf.path_to_ancestor(realroot, lambda a,b: a + "_" + b)
-    func_args = "ctx: typer.Context"
-    arg_names = ["ctx"]
-    arg_types = [typer.Context]
-    arg_defaults = []
-    for argname in leaf.data["path_params"]:
-        # add the type
-        argname = argname.replace(".", "_")
-        argtype, argtypestr = eval_type_of(argname, bodyparams)
-        arg_names.append(argname)
-        arg_types.append(argtype)
-        # arg_defaults.append()
-        func_args += f", {argname}: {argtypestr}"
-
-    arg_names.append("file")
-    arg_types.append(typer.FileText)
-    arg_defaults.append(typer.Option(..., help="File containing the entire body of the request"))
-    func_args += ", file: typer.FileText"
-
-    arg_names.append("json")
-    arg_types.append(str)
-    arg_defaults.append(typer.Option(..., help="A JSON string containing the entire body of the request"))
-    func_args += ", json: str"
-
-    # Do the same for all nested field paths
-    for field_path, fptype, fptypestr, fpdefault, fphelp  in nested_field_paths(ast, bodyparams):
-        argname = field_path.replace(".", "_")
-        arg_names.append(argname)
-        arg_types.append(fptype)
-        arg_defaults.append(typer.Option(fpdefault, field_path, help=fphelp))
-        func_args += f", {argname}: {fptypestr}"
-
-    pprinted = pprint(bodyparams)
-    func_body = f"make_request(ctx, httppath, httpverb, {pprinted})"
-    func_template = f"def {func_name}({func_args}): \n {func_body}"
-    exec(func_template)
-    new_func = locals()[func_name]
-    new_func.__defaults__ = tuple(arg_defaults)
-    # new_func.__annotations__[param] = annotation
-
-    # now add file and json types
-
-    # register it!
-    leaf.data["appcmd"] = parent_app.command(leaf.value)(new_func)
-    return leaf.data["appcmd"]
+if __name__ == "__main__":
+    app(obj={})
