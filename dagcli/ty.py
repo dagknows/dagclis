@@ -120,7 +120,9 @@ def dags():
     """
 
     @app.command()
-    def remove_nodes(ctx: typer.Context, dag_id: str, node_ids: List[str] = typer.Argument(..., help = "List of Node IDs to remove from the Dag")):
+    def remove_nodes(ctx: typer.Context, 
+                     dag_id: str = typer.Option(..., help = "Dag ID to add a new edge in"),
+                     node_ids: List[str] = typer.Argument(..., help = "List of Node IDs to remove from the Dag")):
         if not node_ids: return
         newapi(ctx, f"/v1/dags/{dag_id}", {
             "remove_nodes": node_ids,
