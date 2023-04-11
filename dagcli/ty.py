@@ -128,10 +128,9 @@ def dags():
 
     @app.command()
     def connect(ctx: typer.Context,
-                dag_id: str,
+                dag_id: str = typer.Option(..., help = "Dag ID to add a new edge in"),
                 src_node_id: str = typer.Option(..., help = "Source node ID to start connection from"),
                 dest_node_id: str = typer.Option(..., help = "Destination node ID to add connection to")):
-        # src_node = newapi(ctx, f"/v1/nodes/{src_node_id}", {}, "GET")
         newapi(ctx, f"/v1/nodes/{src_node_id}", {
             "node": {
                 "dag_id": dag_id,
@@ -141,11 +140,10 @@ def dags():
 
     @app.command()
     def disconnect(ctx: typer.Context,
-                dag_id: str,
-                src_node_id: str = typer.Argument(..., help = "Source node ID to remove connection from"),
-                dest_node_id: str = typer.Argument(..., help = "Destination node ID to remove connection in")):
-        src_node = newapi(ctx, f"/v1/nodes/{src_node_id}", {}, "GET")
-        newapi(ctx, f"/v1/nodes/{node_id}", {
+                dag_id: str = typer.Option(..., help = "Dag ID to remove an new edge from"),
+                src_node_id: str = typer.Option(..., help = "Source node ID to remove connection from"),
+                dest_node_id: str = typer.Option(..., help = "Destination node ID to remove connection in")):
+        newapi(ctx, f"/v1/nodes/{src_node_id}", {
             "node": {
                 "dag_id": dag_id,
             },
@@ -288,14 +286,17 @@ def nodes():
             dag_id: str = typer.Option(None, help = "ID of Dag to create a node in"),
             title: str = typer.Option(..., help = "Title of the new Node"),
             description: str = typer.Option("", help = "Description string for your Node"),
+            input_params: str = typer.Option("", help = 'Comma separated list of names of all parameters to be passed to detection script, eg "ip, host, username"'),
             detection_script: typer.FileText = typer.Option(None, help = "File containing the detection script for this Node"),
             remediation_script: typer.FileText = typer.Option(None, help = "File containing the remediation script for this Node")):
 
+        inparams = [p.strip() for p in input_params.split(",") if p.strip()]
         payload = {
             "node": {
                 "node": {
                     "title": title,
                     "description": description,
+                    "input_params": dict({p: p for p in inparams})
                 }
             }
         }
