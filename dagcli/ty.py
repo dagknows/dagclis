@@ -10,8 +10,8 @@ app = typer.Typer(pretty_exceptions_show_locals=False)
 def common_params(ctx: typer.Context,
                   apigw_host: str = typer.Option("http://localhost:8080/api", envvar='DagKnowsApiGatewayHost', help='API endpoint for our CLI to reach'),
                   reqrouter_host : str = typer.Option("https://demo.dagknows.com:8443", envvar='DagKnowsReqRouterHost', help='Environment for our API GW to hit'),
-                  log_request: str = typer.Option(False, help='Enables logging of requests'),
-                  log_response: str = typer.Option(False, help='Enables logging of responses'),
+                  log_request: bool = typer.Option(False, help='Enables logging of requests'),
+                  log_response: bool = typer.Option(False, help='Enables logging of responses'),
                   auth_token: str = typer.Option(..., envvar='DagKnowsAuthToken', help='AuthToken for accessing DagKnows')):
     ctx.obj = {
         "apigw_host": apigw_host,
@@ -36,7 +36,7 @@ def newapi(ctx: typer.Context, path, payload=None, method = ""):
         path = path[1:]
     url = f"{url}/{path}"
     methfunc = getattr(requests, method)
-    if ctx.obj["log_request"]:
+    if ctx.obj["log_request"] == True:
         print(f"API Request: {method.upper()} {url}: ", payload)
     if payload:
         if method == "get":
@@ -47,8 +47,7 @@ def newapi(ctx: typer.Context, path, payload=None, method = ""):
         resp = methfunc(url, headers=headers)
     # print(json.dumps(resp.json(), indent=4))
     result = resp.json()
-    if ctx.obj["log_response"]:
-        print("API Response: ", pprint(result))
+    pprint(result)
     return result
 
 def dags():
