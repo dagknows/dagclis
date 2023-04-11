@@ -66,7 +66,7 @@ def dags():
     @app.command()
     def delete(ctx: typer.Context, dag_ids: List[str] = typer.Argument(..., help = "List of ID of the Dags to be deleted")):
         for dagid in dag_ids:
-            newapi(ctx, f"/v1/dags/{dagid}", "DELETE")
+            newapi(ctx, f"/v1/dags/{dagid}", None, "DELETE")
 
     @app.command()
     def get(ctx: typer.Context, dag_ids: List[str] = typer.Argument(None, help = "IDs of the Dags to be fetched")):
@@ -119,7 +119,7 @@ def dags():
     @app.command()
     def connect(ctx: typer.Context,
                 dag_id: str,
-                src_node_id: str = typer.Argument(..., help = "Source node ID to start connection from")):
+                src_node_id: str = typer.Argument(..., help = "Source node ID to start connection from"),
                 dest_node_id: str = typer.Argument(..., help = "Destination node ID to add connection to")):
         newapi(ctx, f"/v1/dags/{dag_id}", {
             "add_edges": [
@@ -130,7 +130,7 @@ def dags():
     @app.command()
     def disconnect(ctx: typer.Context,
                 dag_id: str,
-                src_node_id: str = typer.Argument(..., help = "Source node ID to remove connection from")):
+                src_node_id: str = typer.Argument(..., help = "Source node ID to remove connection from"),
                 dest_node_id: str = typer.Argument(..., help = "Destination node ID to remove connection in")):
         newapi(ctx, f"/v1/dags/{dag_id}", {
             "remove_edges": [
