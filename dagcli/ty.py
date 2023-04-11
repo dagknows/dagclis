@@ -1,4 +1,5 @@
 import typer
+from ipdb import set_trace
 import requests
 from pprint import pprint
 from typing import List
@@ -101,18 +102,201 @@ def dags():
             "update_mask": ",".join(update_mask),
         }, "PATCH")
 
-    return app
+    @app.command()
+    def add_nodes(ctx: typer.Context, dag_id: str, node_ids: List[str] = typer.Argument(..., help = "List of Node IDs to add to the Dag")):
+        if not node_ids: return
+        newapi(ctx, f"/v1/dags/{dag_id}", {
+            "add_nodes": node_ids,
+        }, "PATCH")
 
-def nodes():
-    app = typer.Typer()
-    return app
+    @app.command()
+    def remove_nodes(ctx: typer.Context, dag_id: str, node_ids: List[str] = typer.Argument(..., help = "List of Node IDs to remove from the Dag")):
+        if not node_ids: return
+        newapi(ctx, f"/v1/dags/{dag_id}", {
+            "remove_nodes": node_ids,
+        }, "PATCH")
 
-def sessions():
-    app = typer.Typer()
+    @app.command()
+    def connect(ctx: typer.Context,
+                dag_id: str,
+                src_node_id: str = typer.Argument(..., help = "Source node ID to start connection from")):
+                dest_node_id: str = typer.Argument(..., help = "Destination node ID to add connection to")):
+        newapi(ctx, f"/v1/dags/{dag_id}", {
+            "add_edges": [
+                {'src': src_node_id, 'dest': dest_node_id},
+            ],
+        }, "PATCH")
+
+    @app.command()
+    def disconnect(ctx: typer.Context,
+                dag_id: str,
+                src_node_id: str = typer.Argument(..., help = "Source node ID to remove connection from")):
+                dest_node_id: str = typer.Argument(..., help = "Destination node ID to remove connection in")):
+        newapi(ctx, f"/v1/dags/{dag_id}", {
+            "remove_edges": [
+                {'src': src_node_id, 'dest': dest_node_id},
+            ],
+        }, "PATCH")
+
     return app
 
 def execs():
     app = typer.Typer()
+
+    @app.command()
+    def new(ctx: typer.Context,
+            dag_id: str = typer.Option(..., help = "ID of Dag to create an execution for"),
+            session_id: str = typer.Option(..., help = "ID of Session to publish results in"),
+            proxy: str= typer.Option(..., help="Address of the proxy to send execution to"),
+            node_id: str = typer.Option(None, help = "ID of node to start from.  Will default to Dag root node"),
+            params: str = typer.Option(None, help = "Json dictionary of parameters"),
+            file: typer.FileText = typer.Option(None, help = "File containing a json of the parametres"),
+            schedule: str = typer.Option(None, help = "Json dictionary of execution schedule")):
+
+        payload = {
+            "session_id": session_id,
+            "proxy_address": proxy,
+            "stop_on_problem": False,
+            "full_sub_dag": True,
+            "params": {}
+        }
+        dag = newapi(ctx, f"/v1/dags/{dag_id}")
+        if node_id:
+            payload["node_id"] = node_id
+        else:
+            payload["node_handle"] = dag["dag"]["title"]
+
+        if schedule: payload["schedule"] = json.loads(schedule)
+        if params: payload["params"] = json.loads(params)
+        if file: payload["params"] = json.load(file)
+        newapi(ctx, f"/v1/dags/{dag_id}/executions", payload, "POST")
+
+    return app
+
+def sessions():
+    app = typer.Typer()
+
+    @app.command()
+    def create(ctx: typer.Context,
+               subject: str = typer.Option(..., help = "Subject of the new session")):
+        newapi(ctx, "/v1/sessions", {
+            "subject": subject,
+        }, "POST")
+
+    @app.command()
+    def get(ctx: typer.Context, session_ids: List[str] = typer.Argument(None, help = "IDs of the Sessions to be fetched")):
+        if not session_ids:
+            newapi(ctx, "/v1/sessions", { }, "GET")
+        elif len(session_ids) == 1:
+            newapi(ctx, f"/v1/sessions/{session_ids[0]}", { }, "GET")
+        else:
+            newapi(ctx, "/v1/sessions:batchGet", { "ids": session_ids }, "GET")
+
+    @app.command()
+    def delete(ctx: typer.Context, session_ids: List[str] = typer.Argument(..., help = "List of ID of the Sessions to be deleted")):
+        for sessionid in session_ids:
+            newapi(ctx, f"/v1/sessions/{sessionid}", None, "DELETE")
+
+    @app.command()
+    def search(ctx: typer.Context, subject: str = typer.Option("", help = "Subject to search for Sessions by")):
+        return newapi(ctx, "/v1/sessions", {
+            "title": subject,
+        }, "GET")
+
+    @app.command()
+    def add_user(ctx: typer.Context, session_id: str, user_ids: List[str] = typer.Argument(..., help = "List of user IDs to add to the session")):
+        if not user_ids: return
+        newapi(ctx, f"/v1/sessions/{session_id}", {
+            "session": {},
+            "add_users": user_ids,
+        }, "PATCH")
+
+    @app.command()
+    def remove_user(ctx: typer.Context, session_id: str, user_ids: List[str] = typer.Argument(..., help = "List of user IDs to remove from the session")):
+        if not user_ids: return
+        newapi(ctx, f"/v1/sessions/{session_id}", {
+            "session": {},
+            "remove_users": user_ids,
+        }, "PATCH")
+
+    return app
+
+def nodes():
+    app = typer.Typer()
+
+    @app.command()
+    def get(ctx: typer.Context,
+            dag_id: str = typer.Option(None, help="Dag ID in the context of which to get the Node - only for single gets"),
+            node_ids: List[str] = typer.Argument(None, help = "IDs of the Nodes to be fetched")):
+        if not node_ids:
+            newapi(ctx, "/v1/nodes", { }, "GET")
+        elif len(node_ids) == 1:
+            payload = {}
+            if dag_id:
+                payload["dag_id"] = dag_id
+            newapi(ctx, f"/v1/nodes/{node_ids[0]}", payload, "GET")
+        else:
+            newapi(ctx, "/v1/nodes:batchGet", { "ids": node_ids }, "GET")
+
+    @app.command()
+    def search(ctx: typer.Context, title: str = typer.Option("", help = "Title to search for Nodes by")):
+        return newapi(ctx, "/v1/nodes", {
+            "title": title,
+        }, "GET")
+
+    @app.command()
+    def modify(ctx: typer.Context, node_id: str = typer.Argument(..., help = "ID of the Dag to be updated"),
+               title: str = typer.Option(None, help="New title to be set for the Dag"),
+               description: str = typer.Option(None, help="New description to be set for the Dag")):
+
+        update_mask = []
+        params = {}
+        if title: 
+            update_mask.append("title")
+            params["title"] = title
+        if description: 
+            update_mask.append("description")
+            params["description"] = description
+
+        newapi(ctx, f"/v1/nodes/{node_id}", {
+            "node": {
+                "node": params,
+            },
+            "update_mask": ",".join(update_mask),
+        }, "PATCH")
+
+    @app.command()
+    def delete(ctx: typer.Context, node_ids: List[str] = typer.Argument(..., help = "List of ID of the Nodes to be deleted")):
+        for nodeid in node_ids:
+            newapi(ctx, f"/v1/nodes/{nodeid}", None, "DELETE")
+
+    @app.command()
+    def create(ctx: typer.Context,
+            dag_id: str = typer.Option(None, help = "ID of Dag to create a node in"),
+            title: str = typer.Option(..., help = "Title of the new Node"),
+            description: str = typer.Option("", help = "Description string for your Node"),
+            detection_script: typer.FileText = typer.Option(None, help = "File containing the detection script for this Node"),
+            remediation_script: typer.FileText = typer.Option(None, help = "File containing the remediation script for this Node")):
+
+        payload = {
+            "node": {
+                "node": {
+                    "title": title,
+                    "description": description,
+                }
+            }
+        }
+        if dag_id: payload["node"]["dag_id"] = dag_id
+        if detection_script:
+            payload["node"]["node"]["detection"] = {
+                "script": detection_script.read()
+            }
+        if remediation_script:
+            payload["node"]["node"]["remediation"] = {
+                "script": remediation_script.read()
+            }
+        newapi(ctx, f"/v1/nodes", payload, "POST")
+
     return app
 
 app.add_typer(dags(), name="dags")
