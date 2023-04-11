@@ -86,7 +86,6 @@ def dags():
     def modify(ctx: typer.Context, dag_id: str = typer.Argument(..., help = "ID of the dag to be updated"),
                title: str = typer.Option(None, help="New title to be set for the Dag"),
                description: str = typer.Option(None, help="New description to be set for the Dag")):
-
         update_mask = []
         params = {}
         if title: 
@@ -95,18 +94,30 @@ def dags():
         if description: 
             update_mask.append("description")
             params["description"] = description
-
         newapi(ctx, f"/v1/dags/{dag_id}", {
             "dag": params,
             "update_mask": ",".join(update_mask),
         }, "PATCH")
 
+    """
     @app.command()
     def add_nodes(ctx: typer.Context, dag_id: str, node_ids: List[str] = typer.Argument(..., help = "List of Node IDs to add to the Dag")):
+        # dagcli nodes create title --dag_id = this
         if not node_ids: return
-        newapi(ctx, f"/v1/dags/{dag_id}", {
-            "add_nodes": node_ids,
-        }, "PATCH")
+        for node_id in node_ids:
+            node = newapi(ctx, f"/v1/nodes/{node_id}")
+            title =  node["node"]["node"]["title"]
+            payload = {
+                "node": {
+                    "dag_id": dag_id,
+                    "node": {
+                        "id": node_id,
+                        "title": title,
+                    }
+                }
+            }
+            newapi(ctx, f"/v1/nodes", payload, "POST")
+    """
 
     @app.command()
     def remove_nodes(ctx: typer.Context, dag_id: str, node_ids: List[str] = typer.Argument(..., help = "List of Node IDs to remove from the Dag")):
@@ -118,12 +129,14 @@ def dags():
     @app.command()
     def connect(ctx: typer.Context,
                 dag_id: str,
-                src_node_id: str = typer.Argument(..., help = "Source node ID to start connection from"),
-                dest_node_id: str = typer.Argument(..., help = "Destination node ID to add connection to")):
-        newapi(ctx, f"/v1/dags/{dag_id}", {
-            "add_edges": [
-                {'src': src_node_id, 'dest': dest_node_id},
-            ],
+                src_node_id: str = typer.Option(..., help = "Source node ID to start connection from"),
+                dest_node_id: str = typer.Option(..., help = "Destination node ID to add connection to")):
+        # src_node = newapi(ctx, f"/v1/nodes/{src_node_id}", {}, "GET")
+        newapi(ctx, f"/v1/nodes/{src_node_id}", {
+            "node": {
+                "dag_id": dag_id,
+            },
+            "add_nodes": [ dest_node_id ]
         }, "PATCH")
 
     @app.command()
@@ -131,10 +144,12 @@ def dags():
                 dag_id: str,
                 src_node_id: str = typer.Argument(..., help = "Source node ID to remove connection from"),
                 dest_node_id: str = typer.Argument(..., help = "Destination node ID to remove connection in")):
-        newapi(ctx, f"/v1/dags/{dag_id}", {
-            "remove_edges": [
-                {'src': src_node_id, 'dest': dest_node_id},
-            ],
+        src_node = newapi(ctx, f"/v1/nodes/{src_node_id}", {}, "GET")
+        newapi(ctx, f"/v1/nodes/{node_id}", {
+            "node": {
+                "dag_id": dag_id,
+            },
+            "remove_nodes": [ dest_node_id ]
         }, "PATCH")
 
     return app
@@ -247,7 +262,6 @@ def nodes():
     def modify(ctx: typer.Context, node_id: str = typer.Argument(..., help = "ID of the Dag to be updated"),
                title: str = typer.Option(None, help="New title to be set for the Dag"),
                description: str = typer.Option(None, help="New description to be set for the Dag")):
-
         update_mask = []
         params = {}
         if title: 

@@ -1,3 +1,4 @@
 typer[all]
 requests
 swagger-parser
+pyyaml
