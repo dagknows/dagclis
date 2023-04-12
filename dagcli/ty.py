@@ -1,4 +1,5 @@
 import typer
+import time
 import pickle
 import os
 import re
@@ -13,17 +14,46 @@ class DagKnowsConfig:
         self.homedir = homedir
         self.data = data
         self.ensure_dagknows_init()
+        self.load()
+
+    @property
+    def profile(self):
+        curr = self.data["profile"]
+        if curr not in self.profiles:
+            self.profiles[curr] = {}
+        return curr
+
+    @property
+    def access_tokens(self):
+        return self.profiles[self.profile].get("access_tokens", {})
+
+    @access_tokens.setter
+    def access_tokens(self, access_tokens):
+        values = {k: v for k,v in access_tokens.items() if not v["revoked"]}
+        for k,v in values.items():
+            v["expires_at"] = time.time() + v["expiry"]
+        self.profiles[self.profile]["access_tokens"] = values
+        self.save()
 
     def ensure_dagknows_init(self):
-        homedir = self.homedir
-        if not os.path.isdir(homedir):
-            print(f"Ensuring DagKnows home dir: {homedir}")
-            os.makedirs(homedir)
+        if not os.path.isdir(self.homedir):
+            print(f"Ensuring DagKnows home dir: {self.homedir}")
+            os.makedirs(self.homedir)
 
+    @property
+    def profile_dir(self):
+        profile_dir = os.path.join(self.homedir, self.profile)
+        if not os.path.isdir(profile_dir):
+            os.makedirs(profile_dir)
+        return profile_dir
+
+    @property
+    def config_file(self):
         # Ensure a config file exists
-        config_file = f"{homedir}/config"
+        config_file = os.path.join(self.profile_dir, "config")
         if not os.path.isfile(config_file):
             open(config_file, "w").write("")
+        return config_file
 
     def ensure_host(self, host):
         normalized_host = host.replace("/", "_")
@@ -44,19 +74,25 @@ class DagKnowsConfig:
     def host_config(self, host, config):
         pass
 
-    def profile_config(self, profile, config):
-        pass
+    def load(self):
+        self.profiles = {}
+        if os.path.isfile(self.config_file):
+            data = open(self.config_file).read()
+            if data:
+                self.profiles = json.loads(data)
 
     def save(self):
         """ Serializes the configs back to files. """
-        pass
+        with open(self.config_file, "w") as configfile:
+            configfile.write(json.dumps(self.profiles, indent=4))
 
 app = typer.Typer(pretty_exceptions_show_locals=False)
 
 @app.callback()
 def common_params(ctx: typer.Context,
                   apigw_host: str = typer.Option("http://localhost:8080/api", envvar='DagKnowsApiGatewayHost', help='API endpoint for our CLI to reach'),
-                  reqrouter_host : str = typer.Option("https://demo.dagknows.com:8443", envvar='DagKnowsReqRouterHost', help='Environment for our API GW to hit'),
+                  # reqrouter_host : str = typer.Option("https://demo.dagknows.com:8443", envvar='DagKnowsReqRouterHost', help='Environment for our API GW to hit'),
+                  reqrouter_host : str = typer.Option("https://localhost:443", envvar='DagKnowsReqRouterHost', help='Environment for our API GW to hit'),
                   log_request: bool = typer.Option(False, help='Enables logging of requests'),
                   output_format: str = typer.Option("json", help='Output format to print as - json, slack, html'),
                   log_response: bool = typer.Option(False, help='Enables logging of responses'),
@@ -70,7 +106,7 @@ def common_params(ctx: typer.Context,
                              log_request=log_request,
                              log_response=log_response,
                              dagknows_home=os.path.expanduser(dagknows_home),
-                             dagknows_profile=profile,
+                             profile=profile,
                              headers={
                                  "Authorization": f"Bearer {auth_token}",
                                  "DagKnowsReqRouterHost": reqrouter_host,
@@ -90,6 +126,10 @@ class SessionClient:
         self.dkconfig = dkconfig
         self.session_file = dkconfig.sessions_file_for_host(self.host)
         self.session = requests.Session()
+        from urllib3.exceptions import InsecureRequestWarning
+        from urllib3 import disable_warnings
+        disable_warnings(InsecureRequestWarning)
+        self.session.verify = False
         self.loadcookies()
 
     def savecookies(self):
@@ -102,11 +142,7 @@ class SessionClient:
                 self.session.cookies.update(pickle.load(f))
 
     def login_with_email(self, email, password, org):
-        from urllib3.exceptions import InsecureRequestWarning
-        from urllib3 import disable_warnings
-        disable_warnings(InsecureRequestWarning)
         url = make_url(self.host, f"/user/sign-in?org={org}")
-        self.session.verify = False
         resp = self.session.get(url)
         content = resp.content
         contentstr = str(content)
@@ -127,15 +163,15 @@ class SessionClient:
     def generate_access_token(self, label, expires_in=30*86400):
         url = make_url(self.host, "/generateAccessToken")
         payload = {
-            label: label,
-            exp: expires_in
+            "label": label,
+            "exp": expires_in
         }
         resp = self.session.post(url, json=payload)
         return resp.json()
 
     def revoke_access_token(self, token):
         url = make_url(self.host, "/revokeToken")
-        payload = { token: token }
+        payload = { "token": token }
         resp = self.session.post(url, json=payload)
         return resp.json()
 
@@ -188,18 +224,27 @@ def tokens():
     app = typer.Typer()
 
     @app.command()
-    def new(ctx: typer.Context, label: str = typer.Argument(help="Label of the new token to generate"),
-            expires_in: int = typer.Option(30*2592000, help="Expiration in seconds")):
+    def new(ctx: typer.Context, label: str = typer.Argument(..., help="Label of the new token to generate"),
+            expires_in: int = typer.Option(30*86400, help="Expiration in seconds")):
         sesscli = SessionClient(ctx.obj)
         resp = sesscli.generate_access_token(label, expires_in)
-        set_trace()
+        if "access_tokens" not in resp:
+            return "Access token not created"
+        ctx.obj.access_tokens = resp["access_tokens"]
+        return resp["access_tokens"]
 
     @app.command()
-    def revoke(ctx: typer.Context, label: str = typer.Argument(help="Label of the token to revoke")):
-        sesscli = SessionClient(host, homedir)
-        token = get_token_for_label(label)
-        resp = sesscli.revoke_token(label, expires_in)
+    def list(ctx: typer.Context):
+        """ List all tokens under the current profile. """
+        for token, data in ctx.obj.access_tokens.items():
+            print(f'{data["label"]} - {data["expiry"]} - {token}')
+
+    @app.command()
+    def revoke(ctx: typer.Context, label: str = typer.Argument(..., help="Label of the token to revoke")):
+        sesscli = SessionClient(ctx.obj)
+        token = label # get_token_for_label(label)
         set_trace()
+        resp = sesscli.revoke_access_token(token)
 
     return app
 
@@ -467,6 +512,7 @@ app.add_typer(dags(), name="dags")
 app.add_typer(sessions(), name="sessions")
 app.add_typer(nodes(), name="nodes")
 app.add_typer(execs(), name="execs")
+app.add_typer(tokens(), name="tokens")
 
 if __name__ == "__main__":
     app(obj={})
