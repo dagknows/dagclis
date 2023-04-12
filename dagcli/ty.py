@@ -185,6 +185,8 @@ class SessionClient:
             return
         admin_settings = resp["admin_settings"]
         proxy_table = admin_settings["proxy_table"]
+        if label not in proxy_table:
+            return None
         proxy_info = proxy_table[label]
         import base64
         proxy_bytes = base64.b64decode(proxy_info["proxy_code"])
@@ -565,15 +567,17 @@ def proxy():
         sesscli = SessionClient(ctx.obj)
         folder = os.path.abspath(os.path.expanduser(folder or label))
         proxy_bytes = sesscli.download_proxy(label)
-        if proxy_bytes:
-            with tempfile.NamedTemporaryFile() as outfile:
-                if not os.path.isdir(folder): os.makedirs(folder)
-                outfile.write(proxy_bytes)
-                set_trace()
-                import subprocess
-                p = subprocess.run(["tar", "-zxvf", outfile.name, "--directory", folder])
-                print(p.stderr)
-                print(p.stdout)
+        if not proxy_bytes:
+            print(f"Proxy {label} not found.  You can create one with 'proxy new {label}'")
+            return
+
+        with tempfile.NamedTemporaryFile() as outfile:
+            if not os.path.isdir(folder): os.makedirs(folder)
+            outfile.write(proxy_bytes)
+            import subprocess
+            p = subprocess.run(["tar", "-zxvf", outfile.name, "--directory", folder])
+            print(p.stderr)
+            print(p.stdout)
 
     @app.command()
     def list(ctx: typer.Context):
