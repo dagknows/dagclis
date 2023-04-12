@@ -160,6 +160,18 @@ class SessionClient:
         resp = self.session.post(url, data=payload)
         self.savecookies()
 
+    def add_proxy(self, label):
+        url = make_url(self.host, "/addAProxy")
+        payload = { "alias": label, }
+        resp = self.session.post(url, json=payload)
+        return resp.json()
+
+    def delete_proxy(self, label):
+        url = make_url(self.host, "/deleteAProxy")
+        payload = { "alias": label, }
+        resp = self.session.post(url, json=payload)
+        return resp.json()
+        
     def generate_access_token(self, label, expires_in=30*86400):
         url = make_url(self.host, "/generateAccessToken")
         payload = {
@@ -508,11 +520,42 @@ def nodes():
 
     return app
 
+def proxy():
+    app = typer.Typer()
+
+    @app.command()
+    def new(ctx: typer.Context,
+            label: str = typer.Argument(..., help="Label of the new proxy to create"),
+            folder: str = typer.Argument(None, help="Directory to install proxy files in.  Default to ./{label}"),
+            host: str = typer.Argument(None, help="Reqrouter Host to connect to.  Will default to --reqrouter_host value")):
+        sesscli = SessionClient(ctx.obj)
+        resp = sesscli.add_proxy(label)
+        if resp.get("responsecode", False) in (False, "false", "False"):
+            print(resp["msg"])
+        else:
+            host = host or ctx.obj.data["reqrouter_host"]
+            folder = folder or os.path.abspath(label)
+            if os.path.isdir(folder):
+                print("Folder for proxy already exists: ", folder)
+            else:
+                os.makedirs(folder)
+                set_trace()
+
+    @app.command()
+    def delete(ctx: typer.Context, label: str = typer.Argument(..., help="Label of the proxy to delete")):
+        sesscli = SessionClient(ctx.obj)
+        resp = sesscli.delete_proxy(label)
+        if resp.get("responsecode", False) in (False, "false", "False"):
+            print(resp["msg"])
+
+    return app
+
 app.add_typer(dags(), name="dags")
 app.add_typer(sessions(), name="sessions")
 app.add_typer(nodes(), name="nodes")
 app.add_typer(execs(), name="execs")
 app.add_typer(tokens(), name="tokens")
+app.add_typer(proxy(), name="proxy")
 
 if __name__ == "__main__":
     app(obj={})
