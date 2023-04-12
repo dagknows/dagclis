@@ -1,6 +1,9 @@
 import typer
+import pickle
 import os
+import re
 from ipdb import set_trace
+import json
 import requests
 from pprint import pprint
 from typing import List
@@ -12,6 +15,7 @@ def common_params(ctx: typer.Context,
                   apigw_host: str = typer.Option("http://localhost:8080/api", envvar='DagKnowsApiGatewayHost', help='API endpoint for our CLI to reach'),
                   reqrouter_host : str = typer.Option("https://demo.dagknows.com:8443", envvar='DagKnowsReqRouterHost', help='Environment for our API GW to hit'),
                   log_request: bool = typer.Option(False, help='Enables logging of requests'),
+                  output_format: str = typer.Option("json", help='Output format to print as - json, slack, html'),
                   log_response: bool = typer.Option(False, help='Enables logging of responses'),
                   dagknows_home: str = typer.Option("~/.dagknows", envvar="DagKnowsHomeDir"),
                   profile: str = typer.Option("default", envvar="DagKnowsProfile"),
@@ -30,16 +34,63 @@ def common_params(ctx: typer.Context,
         }
     }
 
+def make_url(host, path):
+    url = host
+    if path.startswith("/"):
+        path = path[1:]
+    if host.endswith("/"):
+        host = host[:-1]
+    return f"{url}/{path}"
+
+class SessionClient:
+    def __init__(self, host, dagknows_dir):
+        self.host = host
+        normalized_host = host.replace("/", "_")
+        hostdir = os.path.expanduser(os.path.join(dagknows_dir, normalized_host))
+        os.makedirs(hostdir, exist_ok=True)
+        self.session_file = os.path.join(hostdir, "sessions")
+        self.session = requests.Session()
+        self.loadcookies()
+
+    def savecookies(self):
+        with open(self.session_file, 'wb') as f:
+            pickle.dump(self.session.cookies, f)
+
+    def loadcookies(self):
+        if os.path.isfile(self.session_file):
+            with open(self.session_file, 'rb') as f:
+                self.session.cookies.update(pickle.load(f))
+
+    def login_with_email(self, email, password, org):
+        from urllib3.exceptions import InsecureRequestWarning
+        from urllib3 import disable_warnings
+        disable_warnings(InsecureRequestWarning)
+        url = make_url(self.host, f"/user/sign-in?org={org}")
+        self.session.verify = False
+        resp = self.session.get(url)
+        content = resp.content
+        contentstr = str(content)
+        m = re.search(r"(\<input[^>]*name=\"csrf_token\"[^>]*)value=\"([^\"]*)\"", contentstr)
+        if len(m.groups()) != 2:
+            raise "Invalid sign-in URL"
+        csrf_token = m.groups()[1]
+        payload = {
+            "req_next": "/",
+            "csrf_token": csrf_token,
+            "email": email,
+            "password": password,
+            "org": org,
+        }
+        resp = self.session.post(url, data=payload)
+        self.savecookies()
+
 def newapi(ctx: typer.Context, path, payload=None, method = ""):
-    url = ctx.obj["apigw_host"]
+    url = make_url(ctx.obj["apigw_host"], path)
     method = method.lower()
     headers = ctx.obj["headers"]
     if not method.strip():
         if payload: method = "post"
         else: method = "get"
-    if path.startswith("/"):
-        path = path[1:]
-    url = f"{url}/{path}"
     methfunc = getattr(requests, method)
     if ctx.obj["log_request"] == True:
         print(f"API Request: {method.upper()} {url}: ", payload)
@@ -65,8 +116,12 @@ def init(ctx: typer.Context):
     """ Initializes DagKnows config and state folders. """
     # Initialize the home directory
     homedir = ctx.obj["dagknows_home"]
-    print(f"Ensuring DagKnows home dir: {homedir}")
-    os.makedirs(homedir)
+    ensure_dagknows_init(homedir)
+
+def ensure_dagknows_init(homedir: str):
+    if not os.path.isdir(homedir):
+        print(f"Ensuring DagKnows home dir: {homedir}")
+        os.makedirs(homedir)
 
     # Ensure a config file exists
     config_file = f"{homedir}/config"
@@ -74,9 +129,16 @@ def init(ctx: typer.Context):
         open(config_file, "w").write("")
 
 @app.command()
-def login():
+def login(ctx: typer.Context, org: str = typer.Option("dagknows", help="Organization to login to"),
+          username: str = typer.Option(..., help="Username/Email to login with", prompt=True),
+          password: str = typer.Option(..., help="Username/Email to login with", prompt=True, hide_input=True)):
     """ Logs into DagKnows and installs a new auth token. """
-    pass
+    host = ctx.obj["reqrouter_host"]
+    homedir = ctx.obj["dagknows_home"]
+    ensure_dagknows_init(homedir)
+    sesscli = SessionClient(host, homedir)
+    sesscli.login_with_email(username, password, org)
+    set_trace()
 
 def dags():
     app = typer.Typer()
