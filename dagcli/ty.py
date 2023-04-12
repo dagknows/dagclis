@@ -167,6 +167,16 @@ class SessionClient:
         resp = self.session.post(url, json=payload)
         return resp.json()
 
+    def list_proxies(self):
+        url = make_url(self.host, "/getSettings")
+        resp = self.session.post(url, json={}).json()
+        if resp.get("responsecode", False) in (False, "false", "False"):
+            print(resp["msg"])
+            return
+        admin_settings = resp["admin_settings"]
+        proxy_table = admin_settings["proxy_table"]
+        return proxy_table.keys()
+
     def download_proxy(self, label):
         url = make_url(self.host, "/getSettings")
         resp = self.session.post(url, json={}).json()
@@ -564,6 +574,13 @@ def proxy():
                 p = subprocess.run(["tar", "-zxvf", outfile.name, "--directory", folder])
                 print(p.stderr)
                 print(p.stdout)
+
+    @app.command()
+    def list(ctx: typer.Context):
+        """ List proxies on this host. """
+        sesscli = SessionClient(ctx.obj)
+        resp = sesscli.list_proxies()
+        for k in resp: print(k)
 
     @app.command()
     def delete(ctx: typer.Context, label: str = typer.Argument(..., help="Label of the proxy to delete")):
