@@ -12,15 +12,27 @@ class DagKnowsConfig:
     def __init__(self, homedir, **data):
         self.homedir = homedir
         self.data = data
+        self.ensure_dagknows_init()
+
+    def ensure_dagknows_init(self):
+        homedir = self.homedir
+        if not os.path.isdir(homedir):
+            print(f"Ensuring DagKnows home dir: {homedir}")
+            os.makedirs(homedir)
+
+        # Ensure a config file exists
+        config_file = f"{homedir}/config"
+        if not os.path.isfile(config_file):
+            open(config_file, "w").write("")
 
     def ensure_host(self, host):
         normalized_host = host.replace("/", "_")
-        hostdir = os.path.expanduser(os.path.join(dagknows_dir, normalized_host))
+        hostdir = os.path.expanduser(os.path.join(self.homedir, normalized_host))
         os.makedirs(hostdir, exist_ok=True)
         return hostdir
 
     def sessions_file_for_host(self, host):
-        hostdir = dkconfig.ensure_host(host)
+        hostdir = self.ensure_host(host)
         session_file = os.path.join(hostdir, "sessions")
         return session_file
 
@@ -73,10 +85,10 @@ def make_url(host, path):
     return f"{url}/{path}"
 
 class SessionClient:
-    def __init__(self, host, dkconfig: "DagKnowsConfig"):
-        self.host = host
+    def __init__(self, dkconfig: "DagKnowsConfig", host=None):
+        self.host = host or dkconfig.data["reqrouter_host"]
         self.dkconfig = dkconfig
-        self.session_file = dkconfig.sessions_file_for_host(host)
+        self.session_file = dkconfig.sessions_file_for_host(self.host)
         self.session = requests.Session()
         self.loadcookies()
 
@@ -159,30 +171,16 @@ def init(ctx: typer.Context):
     """ Initializes DagKnows config and state folders. """
     # Initialize the home directory
     homedir = ctx.obj.data["dagknows_home"]
-    ensure_dagknows_init(homedir)
 
 def get_token_for_label(homedir: str, label: str) -> str:
     pass
-
-def ensure_dagknows_init(homedir: str):
-    if not os.path.isdir(homedir):
-        print(f"Ensuring DagKnows home dir: {homedir}")
-        os.makedirs(homedir)
-
-    # Ensure a config file exists
-    config_file = f"{homedir}/config"
-    if not os.path.isfile(config_file):
-        open(config_file, "w").write("")
 
 @app.command()
 def login(ctx: typer.Context, org: str = typer.Option("dagknows", help="Organization to login to"),
           username: str = typer.Option(..., help="Username/Email to login with", prompt=True),
           password: str = typer.Option(..., help="Username/Email to login with", prompt=True, hide_input=True)):
     """ Logs into DagKnows and installs a new auth token. """
-    host = ctx.obj.data["reqrouter_host"]
-    homedir = ctx.obj.data["dagknows_home"]
-    ensure_dagknows_init(homedir)
-    sesscli = SessionClient(host, homedir)
+    sesscli = SessionClient(ctx.obj)
     sesscli.login_with_email(username, password, org)
     typer.echo("Congratulations.  You can now create and revoke tokens")
 
@@ -192,7 +190,7 @@ def tokens():
     @app.command()
     def new(ctx: typer.Context, label: str = typer.Argument(help="Label of the new token to generate"),
             expires_in: int = typer.Option(30*2592000, help="Expiration in seconds")):
-        sesscli = SessionClient(host, homedir)
+        sesscli = SessionClient(ctx.obj)
         resp = sesscli.generate_access_token(label, expires_in)
         set_trace()
 
