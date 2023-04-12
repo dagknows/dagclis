@@ -1,4 +1,5 @@
 import typer
+import os
 from ipdb import set_trace
 import requests
 from pprint import pprint
@@ -12,6 +13,8 @@ def common_params(ctx: typer.Context,
                   reqrouter_host : str = typer.Option("https://demo.dagknows.com:8443", envvar='DagKnowsReqRouterHost', help='Environment for our API GW to hit'),
                   log_request: bool = typer.Option(False, help='Enables logging of requests'),
                   log_response: bool = typer.Option(False, help='Enables logging of responses'),
+                  dagknows_home: str = typer.Option("~/.dagknows", envvar="DagKnowsHomeDir"),
+                  profile: str = typer.Option("default", envvar="DagKnowsProfile"),
                   auth_token: str = typer.Option(..., envvar='DagKnowsAuthToken', help='AuthToken for accessing DagKnows')):
     ctx.obj = {
         "apigw_host": apigw_host,
@@ -19,6 +22,8 @@ def common_params(ctx: typer.Context,
         "auth_token": auth_token,
         "log_request": log_request,
         "log_response": log_response,
+        "dagknows_home": os.path.expanduser(dagknows_home),
+        "dagknows_profile": profile,
         "headers": {
             "Authorization": f"Bearer {auth_token}",
             "DagKnowsReqRouterHost": reqrouter_host,
@@ -49,6 +54,29 @@ def newapi(ctx: typer.Context, path, payload=None, method = ""):
     result = resp.json()
     pprint(result)
     return result
+
+@app.command()
+def config(ctx: typer.Context):
+    """ Show all defaults and environments. """
+    pprint(ctx.obj)
+
+@app.command()
+def init(ctx: typer.Context):
+    """ Initializes DagKnows config and state folders. """
+    # Initialize the home directory
+    homedir = ctx.obj["dagknows_home"]
+    print(f"Ensuring DagKnows home dir: {homedir}")
+    os.makedirs(homedir)
+
+    # Ensure a config file exists
+    config_file = f"{homedir}/config"
+    if not os.path.isfile(config_file):
+        open(config_file, "w").write("")
+
+@app.command()
+def login():
+    """ Logs into DagKnows and installs a new auth token. """
+    pass
 
 def dags():
     app = typer.Typer()
@@ -160,9 +188,9 @@ def execs():
     @app.command()
     def new(ctx: typer.Context,
             dag_id: str = typer.Option(..., help = "ID of Dag to create an execution for"),
+            node_id: str = typer.Option(..., help = "ID of node to start from.  Will default to Dag root node"),
             session_id: str = typer.Option(..., help = "ID of Session to publish results in"),
             proxy: str= typer.Option(..., help="Address of the proxy to send execution to"),
-            node_id: str = typer.Option(None, help = "ID of node to start from.  Will default to Dag root node"),
             params: str = typer.Option(None, help = "Json dictionary of parameters"),
             file: typer.FileText = typer.Option(None, help = "File containing a json of the parametres"),
             schedule: str = typer.Option(None, help = "Json dictionary of execution schedule")):
@@ -172,14 +200,9 @@ def execs():
             "proxy_address": proxy,
             "stop_on_problem": False,
             "full_sub_dag": True,
-            "params": {}
+            "params": {},
+            "node_id": node_id,
         }
-        dag = newapi(ctx, f"/v1/dags/{dag_id}")
-        if node_id:
-            payload["node_id"] = node_id
-        else:
-            payload["node_handle"] = dag["dag"]["title"]
-
         if schedule: payload["schedule"] = json.loads(schedule)
         if params: payload["params"] = json.loads(params)
         if file: payload["params"] = json.load(file)
