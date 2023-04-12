@@ -8,6 +8,37 @@ import requests
 from pprint import pprint
 from typing import List
 
+class DagKnowsConfig:
+    def __init__(self, homedir, **data):
+        self.homedir = homedir
+        self.data = data
+
+    def ensure_host(self, host):
+        normalized_host = host.replace("/", "_")
+        hostdir = os.path.expanduser(os.path.join(dagknows_dir, normalized_host))
+        os.makedirs(hostdir, exist_ok=True)
+        return hostdir
+
+    def sessions_file_for_host(self, host):
+        hostdir = dkconfig.ensure_host(host)
+        session_file = os.path.join(hostdir, "sessions")
+        return session_file
+
+    def tokens_file_for_host(self, host):
+        hostdir = dkconfig.ensure_host(host)
+        session_file = os.path.join(hostdir, "tokens")
+        return session_file
+
+    def host_config(self, host, config):
+        pass
+
+    def profile_config(self, profile, config):
+        pass
+
+    def save(self):
+        """ Serializes the configs back to files. """
+        pass
+
 app = typer.Typer(pretty_exceptions_show_locals=False)
 
 @app.callback()
@@ -20,19 +51,18 @@ def common_params(ctx: typer.Context,
                   dagknows_home: str = typer.Option("~/.dagknows", envvar="DagKnowsHomeDir"),
                   profile: str = typer.Option("default", envvar="DagKnowsProfile"),
                   auth_token: str = typer.Option(..., envvar='DagKnowsAuthToken', help='AuthToken for accessing DagKnows')):
-    ctx.obj = {
-        "apigw_host": apigw_host,
-        "reqrouter_host": reqrouter_host,
-        "auth_token": auth_token,
-        "log_request": log_request,
-        "log_response": log_response,
-        "dagknows_home": os.path.expanduser(dagknows_home),
-        "dagknows_profile": profile,
-        "headers": {
-            "Authorization": f"Bearer {auth_token}",
-            "DagKnowsReqRouterHost": reqrouter_host,
-        }
-    }
+    ctx.obj = DagKnowsConfig(os.path.expanduser(dagknows_home),
+                             apigw_host = apigw_host,
+                             reqrouter_host=reqrouter_host,
+                             auth_token=auth_token,
+                             log_request=log_request,
+                             log_response=log_response,
+                             dagknows_home=os.path.expanduser(dagknows_home),
+                             dagknows_profile=profile,
+                             headers={
+                                 "Authorization": f"Bearer {auth_token}",
+                                 "DagKnowsReqRouterHost": reqrouter_host,
+                              })
 
 def make_url(host, path):
     url = host
@@ -43,12 +73,10 @@ def make_url(host, path):
     return f"{url}/{path}"
 
 class SessionClient:
-    def __init__(self, host, dagknows_dir):
+    def __init__(self, host, dkconfig: "DagKnowsConfig"):
         self.host = host
-        normalized_host = host.replace("/", "_")
-        hostdir = os.path.expanduser(os.path.join(dagknows_dir, normalized_host))
-        os.makedirs(hostdir, exist_ok=True)
-        self.session_file = os.path.join(hostdir, "sessions")
+        self.dkconfig = dkconfig
+        self.session_file = dkconfig.sessions_file_for_host(host)
         self.session = requests.Session()
         self.loadcookies()
 
@@ -84,15 +112,30 @@ class SessionClient:
         resp = self.session.post(url, data=payload)
         self.savecookies()
 
+    def generate_access_token(self, label, expires_in=30*86400):
+        url = make_url(self.host, "/generateAccessToken")
+        payload = {
+            label: label,
+            exp: expires_in
+        }
+        resp = self.session.post(url, json=payload)
+        return resp.json()
+
+    def revoke_access_token(self, token):
+        url = make_url(self.host, "/revokeToken")
+        payload = { token: token }
+        resp = self.session.post(url, json=payload)
+        return resp.json()
+
 def newapi(ctx: typer.Context, path, payload=None, method = ""):
-    url = make_url(ctx.obj["apigw_host"], path)
+    url = make_url(ctx.obj.data["apigw_host"], path)
     method = method.lower()
-    headers = ctx.obj["headers"]
+    headers = ctx.obj.data["headers"]
     if not method.strip():
         if payload: method = "post"
         else: method = "get"
     methfunc = getattr(requests, method)
-    if ctx.obj["log_request"] == True:
+    if ctx.obj.data["log_request"] == True:
         print(f"API Request: {method.upper()} {url}: ", payload)
     if payload:
         if method == "get":
@@ -115,8 +158,11 @@ def config(ctx: typer.Context):
 def init(ctx: typer.Context):
     """ Initializes DagKnows config and state folders. """
     # Initialize the home directory
-    homedir = ctx.obj["dagknows_home"]
+    homedir = ctx.obj.data["dagknows_home"]
     ensure_dagknows_init(homedir)
+
+def get_token_for_label(homedir: str, label: str) -> str:
+    pass
 
 def ensure_dagknows_init(homedir: str):
     if not os.path.isdir(homedir):
@@ -133,12 +179,31 @@ def login(ctx: typer.Context, org: str = typer.Option("dagknows", help="Organiza
           username: str = typer.Option(..., help="Username/Email to login with", prompt=True),
           password: str = typer.Option(..., help="Username/Email to login with", prompt=True, hide_input=True)):
     """ Logs into DagKnows and installs a new auth token. """
-    host = ctx.obj["reqrouter_host"]
-    homedir = ctx.obj["dagknows_home"]
+    host = ctx.obj.data["reqrouter_host"]
+    homedir = ctx.obj.data["dagknows_home"]
     ensure_dagknows_init(homedir)
     sesscli = SessionClient(host, homedir)
     sesscli.login_with_email(username, password, org)
-    set_trace()
+    typer.echo("Congratulations.  You can now create and revoke tokens")
+
+def tokens():
+    app = typer.Typer()
+
+    @app.command()
+    def new(ctx: typer.Context, label: str = typer.Argument(help="Label of the new token to generate"),
+            expires_in: int = typer.Option(30*2592000, help="Expiration in seconds")):
+        sesscli = SessionClient(host, homedir)
+        resp = sesscli.generate_access_token(label, expires_in)
+        set_trace()
+
+    @app.command()
+    def revoke(ctx: typer.Context, label: str = typer.Argument(help="Label of the token to revoke")):
+        sesscli = SessionClient(host, homedir)
+        token = get_token_for_label(label)
+        resp = sesscli.revoke_token(label, expires_in)
+        set_trace()
+
+    return app
 
 def dags():
     app = typer.Typer()
