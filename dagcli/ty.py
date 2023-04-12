@@ -1,4 +1,5 @@
 import typer
+import tempfile
 import time
 import pickle
 import os
@@ -165,6 +166,19 @@ class SessionClient:
         payload = { "alias": label, }
         resp = self.session.post(url, json=payload)
         return resp.json()
+
+    def download_proxy(self, label):
+        url = make_url(self.host, "/getSettings")
+        resp = self.session.post(url, json={}).json()
+        if resp.get("responsecode", False) in (False, "false", "False"):
+            print(resp["msg"])
+            return
+        admin_settings = resp["admin_settings"]
+        proxy_table = admin_settings["proxy_table"]
+        proxy_info = proxy_table[label]
+        import base64
+        proxy_bytes = base64.b64decode(proxy_info["proxy_code"])
+        return proxy_bytes
 
     def delete_proxy(self, label):
         url = make_url(self.host, "/deleteAProxy")
@@ -525,21 +539,31 @@ def proxy():
 
     @app.command()
     def new(ctx: typer.Context,
-            label: str = typer.Argument(..., help="Label of the new proxy to create"),
-            folder: str = typer.Argument(None, help="Directory to install proxy files in.  Default to ./{label}"),
-            host: str = typer.Argument(None, help="Reqrouter Host to connect to.  Will default to --reqrouter_host value")):
+            label: str = typer.Argument(..., help="Label of the new proxy to create")):
         sesscli = SessionClient(ctx.obj)
         resp = sesscli.add_proxy(label)
         if resp.get("responsecode", False) in (False, "false", "False"):
             print(resp["msg"])
         else:
-            host = host or ctx.obj.data["reqrouter_host"]
-            folder = folder or os.path.abspath(label)
-            if os.path.isdir(folder):
-                print("Folder for proxy already exists: ", folder)
-            else:
-                os.makedirs(folder)
+            print("OK")
+
+    @app.command()
+    def get(ctx: typer.Context,
+            label: str = typer.Argument(..., help="Label of the new proxy to create"),
+            folder: str = typer.Option(None, help="Directory to install proxy files in.  Default to ./{label}"),
+            host: str = typer.Option(None, help="Reqrouter Host to connect to.  Will default to --reqrouter_host value")):
+        sesscli = SessionClient(ctx.obj)
+        folder = os.path.abspath(os.path.expanduser(folder or label))
+        proxy_bytes = sesscli.download_proxy(label)
+        if proxy_bytes:
+            with tempfile.NamedTemporaryFile() as outfile:
+                if not os.path.isdir(folder): os.makedirs(folder)
+                outfile.write(proxy_bytes)
                 set_trace()
+                import subprocess
+                p = subprocess.run(["tar", "-zxvf", outfile.name, "--directory", folder])
+                print(p.stderr)
+                print(p.stdout)
 
     @app.command()
     def delete(ctx: typer.Context, label: str = typer.Argument(..., help="Label of the proxy to delete")):
