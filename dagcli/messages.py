@@ -9,7 +9,6 @@ app = typer.Typer()
 def list(ctx: typer.Context,
          session_id: str = typer.Option(..., help = "ID of session in which to get messages"),
          query: str = typer.Option("", help = "Search messages by text/subject")):
-    import ipdb ; ipdb.set_trace()
     oldapi("getConvOrCreate", {"id": session_id}, access_token=ctx.obj.access_token)
 
 @app.command()
