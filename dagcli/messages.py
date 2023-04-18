@@ -26,7 +26,7 @@ def send(ctx: typer.Context,
     if message:
         oldapi("message", {
                     "msg": " ".join(message),
-                    "conv_id": "06L50hs4QTioNQcCftGpXQ",
+                    "conv_id": session_id,
                     "search_chat_mode": "chat",
                     "nobroadcast": False,
                     "nostore": False,

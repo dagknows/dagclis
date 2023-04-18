@@ -1,5 +1,6 @@
 import typer
 from typing import List
+from dagcli.client import newapi, oldapi
 app = typer.Typer()
 
 @app.command()
@@ -24,3 +25,8 @@ def new(ctx: typer.Context,
     if params: payload["params"] = json.loads(params)
     if file: payload["params"] = json.load(file)
     newapi(ctx, f"/v1/dags/{dag_id}/executions", payload, "POST")
+
+@app.command()
+def get(ctx: typer.Context,
+        exec_id: str = typer.Option(..., help = "ID of execution to get")):
+    oldapi("getJob", {"job_id": exec_id}, access_token=ctx.obj.access_token)
