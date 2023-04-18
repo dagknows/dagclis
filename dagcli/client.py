@@ -82,14 +82,12 @@ class SessionClient:
 
     def list_tokens(self):
         url = make_url(self.host, "/getSettings?org=dagknows")
-        set_trace()
         resp = self.session.post(url, json={})
         resp = resp.json()
         if resp.get("responsecode", False) in (False, "false", "False"):
             print(resp["msg"])
             return
         admin_settings = resp["admin_settings"]
-        set_trace()
         return ""
 
     def add_proxy(self, label):
@@ -98,19 +96,19 @@ class SessionClient:
         resp = self.session.post(url, json=payload)
         return resp.json()
 
-    def list_proxies(self):
+    def list_proxies(self, access_token):
         url = make_url(self.host, "/getSettings")
-        resp = self.session.post(url, json={}).json()
+        resp = self.session.post(url, json={}, headers={"Authorization": f"Bearer {access_token}"}).json()
         if resp.get("responsecode", False) in (False, "false", "False"):
             print(resp["msg"])
             return
         admin_settings = resp["admin_settings"]
-        proxy_table = admin_settings["proxy_table"]
+        proxy_table = admin_settings.get("proxy_table", {})
         return proxy_table.keys()
 
-    def download_proxy(self, label):
+    def download_proxy(self, label, access_token):
         url = make_url(self.host, "/getSettings")
-        resp = self.session.post(url, json={})
+        resp = self.session.post(url, json={}, headers={"Authorization": f"Bearer {access_token}"})
         resp = resp.json()
         if resp.get("responsecode", False) in (False, "false", "False"):
             print(resp["msg"])
@@ -124,10 +122,10 @@ class SessionClient:
         proxy_bytes = base64.b64decode(proxy_info["proxy_code"])
         return proxy_bytes
 
-    def delete_proxy(self, label):
+    def delete_proxy(self, label, access_token):
         url = make_url(self.host, "/deleteAProxy")
         payload = { "alias": label, }
-        resp = self.session.post(url, json=payload)
+        resp = self.session.post(url, json=payload, headers={"Authorization": f"Bearer {access_token}"})
         return resp.json()
         
     def generate_access_token(self, label, expires_in=30*86400):
@@ -136,7 +134,6 @@ class SessionClient:
             "label": label,
             "exp": expires_in
         }
-        set_trace()
         resp = self.session.post(url, json=payload)
         return resp.json()
 
@@ -149,7 +146,6 @@ class SessionClient:
 def oldapi(cmd, payload=None, url="https://localhost:443", access_token=""):
     fullurl = f"{url}/{cmd}"
     headers = {"Authorization": f"Bearer {access_token}"}
-    set_trace()
     resp = requests.post(fullurl, json=payload or {}, headers=headers, verify=False)
     print(json.dumps(resp.json(), indent=4))
     return resp
