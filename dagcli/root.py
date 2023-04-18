@@ -16,7 +16,8 @@ def common_params(ctx: typer.Context,
     assert ctx.obj is None
 
     api_host = os.environ.get('DagKnowsApiGatewayHost', "http://localhost:8080/api")
-    reqrouter_host = os.environ.get('DagKnowsReqRouterHost', "https://demo.dagknows.com:8443")
+    # reqrouter_host = os.environ.get('DagKnowsReqRouterHost', "https://demo.dagknows.com:8443")
+    reqrouter_host = os.environ.get('DagKnowsReqRouterHost', "https://localhost:443")
     dkconfig = DagKnowsConfig(os.path.expanduser(dagknows_home),
                              api_host = api_host,
                              reqrouter_host=reqrouter_host,
@@ -26,7 +27,7 @@ def common_params(ctx: typer.Context,
                              dagknows_home=os.path.expanduser(dagknows_home),
                              profile=profile,
                              headers={
-                                "Authorization": "Bearer {dkconfig.access_token}",
+                                "Authorization": f"Bearer {access_token}",
                                 "DagKnowsReqRouterHost": reqrouter_host,
                              })
     ctx.obj = dkconfig

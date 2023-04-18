@@ -1,5 +1,6 @@
 import typer
 from typing import List
+from dagcli.client import newapi
 app = typer.Typer()
 
 @app.command()
