@@ -148,7 +148,9 @@ class SessionClient:
 
 def oldapi(cmd, payload=None, url="https://localhost:443", access_token=""):
     fullurl = f"{url}/{cmd}"
-    resp = requests.post(fullurl, json=payload or {}, headers={f"Authorization": "Bearer {access_token}"}, verify=False)
+    headers = {"Authorization": f"Bearer {access_token}"}
+    set_trace()
+    resp = requests.post(fullurl, json=payload or {}, headers=headers, verify=False)
     print(json.dumps(resp.json(), indent=4))
     return resp
 

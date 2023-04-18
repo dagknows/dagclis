@@ -24,6 +24,10 @@ def send(ctx: typer.Context,
          session_id: str = typer.Option(..., help = "ID of session in which to get messages"),
          message: List[str] = typer.Argument(None, help = "Message to send to the group")):
     if message:
-        return newapi(ctx, f"/v1/sessions/{session_id}/messages", {
-            "msg": " ".join(message)
-        }, "POST")
+        oldapi("message", {
+                    "msg": " ".join(message),
+                    "conv_id": "06L50hs4QTioNQcCftGpXQ",
+                    "search_chat_mode": "chat",
+                    "nobroadcast": False,
+                    "nostore": False,
+                }, access_token=ctx.obj.access_token)
