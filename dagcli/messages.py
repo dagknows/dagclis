@@ -1,14 +1,16 @@
 
 import typer
 from typing import List
-from dagcli.client import newapi
+from dagcli.client import newapi, oldapi
 app = typer.Typer()
 
 
+@app.command()
 def list(ctx: typer.Context,
          session_id: str = typer.Option(..., help = "ID of session in which to get messages"),
          query: str = typer.Option("", help = "Search messages by text/subject")):
-    newapi(ctx, f"/v1/sessions/{session_id}/messages", { }, "GET")
+    import ipdb ; ipdb.set_trace()
+    oldapi("getConvOrCreate", {"id": session_id}, access_token=ctx.obj.access_token)
 
 @app.command()
 def get(ctx: typer.Context,

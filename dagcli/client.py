@@ -146,6 +146,12 @@ class SessionClient:
         resp = self.session.post(url, json=payload)
         return resp.json()
 
+def oldapi(cmd, payload=None, url="https://localhost:443", access_token=""):
+    fullurl = f"{url}/{cmd}"
+    resp = requests.post(fullurl, json=payload or {}, headers={f"Authorization": "Bearer {access_token}"}, verify=False)
+    print(json.dumps(resp.json(), indent=4))
+    return resp
+
 def newapi(ctx: typer.Context, path, payload=None, method = ""):
     url = make_url(ctx.obj.data["api_host"], path)
     method = method.lower()
