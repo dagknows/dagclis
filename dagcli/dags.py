@@ -25,13 +25,13 @@ def delete(ctx: typer.Context, dag_ids: List[str] = typer.Argument(..., help = "
 @app.command()
 def get(ctx: typer.Context, dag_ids: List[str] = typer.Argument(None, help = "IDs of the Dags to be fetched")):
     if not dag_ids:
-        ctx.obj.tree_transformer = dag_list_transformer
+        ctx.obj.tree_transformer = lambda obj: dag_list_transformer(obj["dags"])
         present(ctx, newapi(ctx, "/v1/dags", { }, "GET"))
     elif len(dag_ids) == 1:
         ctx.obj.tree_transformer = lambda obj: dag_info_transformer(obj["dag"])
         present(ctx, newapi(ctx, f"/v1/dags/{dag_ids[0]}", { }, "GET"))
     else:
-        ctx.obj.tree_transformer = lambda obj: dag_list_transformer({"dags": obj["dags"].values()})
+        ctx.obj.tree_transformer = lambda obj: dag_list_transformer(obj["dags"].values())
         present(ctx, newapi(ctx, "/v1/dags:batchGet", { "ids": dag_ids }, "GET"))
 
 @app.command()
