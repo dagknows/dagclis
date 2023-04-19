@@ -17,11 +17,13 @@ def present(ctx: typer.Context, results):
         # we can render this in tree format with "|" etc
         if results:
             tree = {}
-            if not ctx.obj.tree_transformer:
-                pprint(results)
-                set_trace()
-                assert False, "'tree' output format needs a tree transformer to convert results into a tree structure where each node only has either 'title' or 'children'"
+            if type(results) in (bool, str, int, float):
+                print(results)
             else:
+                if not ctx.obj.tree_transformer:
+                    pprint(results)
+                    set_trace()
+                    assert False, "'tree' output format needs a tree transformer to convert results into a tree structure where each node only has either 'title' or 'children'"
                 tree = ctx.obj.tree_transformer(results)
                 output = render(tree)
                 lines = [(level * " ") + p + (" ") + title if p else title for (p,title,level) in output]
@@ -38,7 +40,10 @@ def render(root, lines=None, level=0, indent=4):
         if level > 0:
             prefix += (level - 1) * indentstr
             prefix += "  |" + (indent - 1) * "-"
-        lines.append((prefix, root["title"], level))
-        for child in root.get("children", []):
-            lines = render(child, lines, level + 1, indent)
+        if type(root) is str:
+            lines.append((prefix, root, level))
+        else:
+            lines.append((prefix, root["title"], level))
+            for child in root.get("children", []):
+                lines = render(child, lines, level + 1, indent)
     return lines

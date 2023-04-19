@@ -2,6 +2,7 @@ import typer
 import json
 from typing import List
 from dagcli.client import newapi, oldapi
+from dagcli.utils import present
 app = typer.Typer()
 
 @app.command()
@@ -25,7 +26,8 @@ def new(ctx: typer.Context,
     if schedule: payload["schedule"] = json.loads(schedule)
     if params: payload["params"] = json.loads(params)
     if file: payload["params"] = json.load(file)
-    newapi(ctx, f"/v1/dags/{dag_id}/executions", payload, "POST")
+    ctx.obj.tree_transformer = lambda obj: f"Created Job: {obj['jobId']}"
+    present(ctx, newapi(ctx, f"/v1/dags/{dag_id}/executions", payload, "POST"))
 
 @app.command()
 def get(ctx: typer.Context,

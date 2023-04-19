@@ -41,8 +41,9 @@ def cmd(ctx: typer.Context,
     if cmd:
         fullcmd = " ".join(cmd)
         oldapi("message", {
-                    "msg": f"@{proxy} {fullcmd}",
+                    "msg": f"@{proxy}.{fullcmd}",
                     "conv_id": session_id,
+                    "proxy": {"alias": proxy},
                     "search_chat_mode": "chat",
                     "nobroadcast": False,
                     "nostore": False,
