@@ -6,7 +6,6 @@ import json
 import re
 import os
 import pickle
-from pprint import pprint
 from typing import List
 
 def make_url(host, path):
@@ -169,6 +168,7 @@ def newapi(ctx: typer.Context, path, payload=None, method = ""):
         resp = methfunc(url, headers=headers)
     # print(json.dumps(resp.json(), indent=4))
     result = resp.json()
+    from pprint import pprint
     pprint(result)
     """
     import yaml

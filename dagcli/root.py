@@ -38,9 +38,14 @@ def ensure_access_token(ctx: typer.Context):
         sys.exit(1)
 
 @app.command()
-def config(ctx: typer.Context):
+def config(ctx: typer.Context, as_json: bool=typer.Option(False, help="Control whether print as json or yaml")):
     """ Show all defaults and environments. """
-    pprint(ctx.obj)
+    if as_json:
+        from pprint import pprint
+        pprint(ctx.obj.data)
+    else:
+        import yaml
+        print(yaml.dump(ctx.obj.data))
 
 @app.command()
 def init(ctx: typer.Context):

@@ -6,7 +6,6 @@ import requests
 from ipdb import set_trace
 from typing import List, Union, Dict
 import json, os
-from pprint import pprint
 
 class CommandActivation(object):
     def __init__(self, name, node, flags=None):
@@ -238,6 +237,7 @@ class HttpCommand:
         out = resp.json()
         if ctx.get_flag_value("log_response", False, True):
             print("API Response: ")
+            from pprint import pprint
             pprint(out)
         return out
 
