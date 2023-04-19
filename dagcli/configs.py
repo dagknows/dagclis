@@ -11,6 +11,7 @@ class DagKnowsConfig:
         self.data = data
         self.profile_data = {}
         self._client = None
+        self.tree_transformer = None
         self.load()
 
     def getpath(self, path, is_dir=False, ensure=False):
@@ -29,6 +30,10 @@ class DagKnowsConfig:
                     # if file doesnt exist then create an empty one
                     open(out, "w").write("")
         return out
+
+    @property
+    def output_format(self):
+        return self.data["output_format"]
 
     @property
     def access_token(self):

@@ -1,6 +1,7 @@
 import typer
 from typing import List
 from dagcli.client import newapi
+from dagcli.utils import present
 app = typer.Typer()
 
 @app.command()
@@ -8,20 +9,20 @@ def get(ctx: typer.Context,
         dag_id: str = typer.Option(None, help="Dag ID in the context of which to get the Node - only for single gets"),
         node_ids: List[str] = typer.Argument(None, help = "IDs of the Nodes to be fetched")):
     if not node_ids:
-        newapi(ctx, "/v1/nodes", { }, "GET")
+        present(ctx, newapi(ctx, "/v1/nodes", { }, "GET"))
     elif len(node_ids) == 1:
         payload = {}
         if dag_id:
             payload["dag_id"] = dag_id
-        newapi(ctx, f"/v1/nodes/{node_ids[0]}", payload, "GET")
+        present(ctx, newapi(ctx, f"/v1/nodes/{node_ids[0]}", payload, "GET"))
     else:
-        newapi(ctx, "/v1/nodes:batchGet", { "ids": node_ids }, "GET")
+        present(ctx, newapi(ctx, "/v1/nodes:batchGet", { "ids": node_ids }, "GET"))
 
 @app.command()
 def search(ctx: typer.Context, title: str = typer.Option("", help = "Title to search for Nodes by")):
-    return newapi(ctx, "/v1/nodes", {
+    return present(ctx, newapi(ctx, "/v1/nodes", {
         "title": title,
-    }, "GET")
+    }, "GET"))
 
 @app.command()
 def modify(ctx: typer.Context, node_id: str = typer.Argument(..., help = "ID of the Dag to be updated"),
@@ -36,17 +37,17 @@ def modify(ctx: typer.Context, node_id: str = typer.Argument(..., help = "ID of 
         update_mask.append("description")
         params["description"] = description
 
-    newapi(ctx, f"/v1/nodes/{node_id}", {
+    present(ctx, newapi(ctx, f"/v1/nodes/{node_id}", {
         "node": {
             "node": params,
         },
         "update_mask": ",".join(update_mask),
-    }, "PATCH")
+    }, "PATCH"))
 
 @app.command()
 def delete(ctx: typer.Context, node_ids: List[str] = typer.Argument(..., help = "List of ID of the Nodes to be deleted")):
     for nodeid in node_ids:
-        newapi(ctx, f"/v1/nodes/{nodeid}", None, "DELETE")
+        present(ctx, newapi(ctx, f"/v1/nodes/{nodeid}", None, "DELETE"))
 
 @app.command()
 def create(ctx: typer.Context,
@@ -76,4 +77,4 @@ def create(ctx: typer.Context,
         payload["node"]["node"]["remediation"] = {
             "script": remediation_script.read()
         }
-    newapi(ctx, f"/v1/nodes", payload, "POST")
+    present(ctx, newapi(ctx, f"/v1/nodes", payload, "POST"))

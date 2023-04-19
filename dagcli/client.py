@@ -168,9 +168,9 @@ def newapi(ctx: typer.Context, path, payload=None, method = ""):
         resp = methfunc(url, headers=headers)
     # print(json.dumps(resp.json(), indent=4))
     result = resp.json()
+    """
     from pprint import pprint
     pprint(result)
-    """
     import yaml
     print(yaml.dump(result))
     """

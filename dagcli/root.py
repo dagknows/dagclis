@@ -12,7 +12,7 @@ def common_params(ctx: typer.Context,
                   dagknows_home: str = typer.Option("~/.dagknows", envvar="DagKnowsHomeDir", help="Dir for DagKnows configs"),
                   log_request: bool = typer.Option(False, help='Enables logging of requests'),
                   log_response: bool = typer.Option(False, help='Enables logging of responses'),
-                  output_format: str = typer.Option("json", help='Output format to print as - json, slack, html')):
+                  format: str = typer.Option("tree", help='Output format to print as - json, yaml, tree')):
     assert ctx.obj is None
 
     api_host = os.environ.get('DagKnowsApiGatewayHost', "http://localhost:8080/api")
@@ -22,6 +22,7 @@ def common_params(ctx: typer.Context,
                              api_host = api_host,
                              reqrouter_host=reqrouter_host,
                              access_token=access_token,
+                             output_format=format,
                              log_request=log_request,
                              log_response=log_response,
                              dagknows_home=os.path.expanduser(dagknows_home),
