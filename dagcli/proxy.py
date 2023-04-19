@@ -31,7 +31,7 @@ def get(ctx: typer.Context,
         if not os.path.isdir(folder): os.makedirs(folder)
         outfile.write(proxy_bytes)
         import subprocess
-        p = subprocess.run(["tar", "-zxvf", outfile.name, "--directory", folder])
+        p = subprocess.run(["tar", "-zxvf", outfile.name])
         print(p.stderr)
         print(p.stdout)
 

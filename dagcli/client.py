@@ -28,7 +28,7 @@ class SessionClient:
         self.session.verify = False
         self.savecookies()
 
-    def load_session(self, verbose=True):
+    def load_session(self, verbose=False):
         self.session = requests.Session()
         self.session.verify = False
         from urllib3.exceptions import InsecureRequestWarning
@@ -170,4 +170,8 @@ def newapi(ctx: typer.Context, path, payload=None, method = ""):
     # print(json.dumps(resp.json(), indent=4))
     result = resp.json()
     pprint(result)
+    """
+    import yaml
+    print(yaml.dump(result))
+    """
     return result

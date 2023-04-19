@@ -1,4 +1,5 @@
 import typer
+import json
 from typing import List
 from dagcli.client import newapi, oldapi
 app = typer.Typer()
