@@ -35,13 +35,21 @@ def new(ctx: typer.Context,
 def get(ctx: typer.Context,
         exec_id: str = typer.Option(..., help = "ID of execution to get")):
     execution = newapi(ctx, f"/v1/executions/{exec_id}")["execution"]
-    last_info = execution["results"][-1]["info"]
-    problem_nodes = set([x["node_id"] for x in last_info["confirm_problem"]])
+    problem_info = defaultdict(str)
+    if "results" in execution and execution["results"]:
+        last_info = execution["results"][-1]["info"]
+        for node in last_info["confirm_problem"]:
+            problem_info[node["node_id"]] = "yes"
+        for node in last_info["confirm_not_problem"]:
+            problem_info[node["node_id"]] = "no"
     dagid = execution["dagId"]
     dag = newapi(ctx, f"/v1/dags/{dagid}")
-    richtree = rich_dag_info_with_exec(dag["dag"], problem_nodes)
-    from rich import print
-    print(richtree)
+    if ctx.obj.output_format == "tree": 
+        ctx.obj.data["output_format"] = "yaml"
+        richtree = rich_dag_info_with_exec(dag["dag"], problem_info)
+        from rich import print
+        print(richtree)
+    else:
+        present(ctx, execution)
     # ctx.obj.tree_transformer = lambda obj: dag_info_with_exec(obj["dag"], problem_nodes)
-    # present(ctx, dag)
     # oldapi("getJob", {"job_id": exec_id}, access_token=ctx.obj.access_token)

@@ -4,7 +4,11 @@ from collections import defaultdict
 
 def dag_list_transformer(dags):
     return {"title": "dags",
-            "children": map(dag_info_transformer, dags)}
+            "children": map(dag_info_with_exec, dags)}
+
+problem_color = "red"
+not_problem_color = "green"
+normal_color = "#5ebbff"
 
 def node_info_transformer(dagnode):
     node = dagnode["node"]
@@ -23,7 +27,7 @@ def node_list_transformer(nodes):
 dagcli nodes get R7YGKMUGWMDlP1HkWg68H9m8m8aejTy6 --dag-id Mu3CFBZvlwNjYoZVA13SC8Gpm4D16Fdi
 """
 
-def rich_dag_info_with_exec(dag, problem_nodes=None):
+def rich_dag_info_with_exec(dag, problem_info=None):
     from rich.tree import Tree
 
     nodesbyid = {}
@@ -33,10 +37,12 @@ def rich_dag_info_with_exec(dag, problem_nodes=None):
     for node in nodes:
         nodeid = node["id"]
         title = node["title"] + f"  ({nodeid})"
-        if nodeid in problem_nodes:
-            title = f"[red][Problem] - {title}"
+        if problem_info[nodeid] == "yes":
+            title = f"[{problem_color}][Problem] - {title}"
+        elif problem_info[nodeid] == "no":
+            title = f"[{not_problem_color}]{title}"
         else:
-            title = f"[green]{title}"
+            title = f"[{normal_color}]{title}"
         treenode = Tree(title)
         nodesbyid[nodeid] = treenode
 
@@ -49,18 +55,18 @@ def rich_dag_info_with_exec(dag, problem_nodes=None):
             nodesbyid[srcnode].add(destnode)
 
     dag_title = f"{dag['title']} ({dag['id']})"
-    if problem_nodes:
-        dag_title = "[red]" + dag_title
+    if len([v == "yes" for v in problem_info.values()]) > 0:
+        dag_title = f"[{problem_color}]{dag_title}"
     else:
-        dag_title = "[green]" + dag_title
+        dag_title = f"[{normal_color}]{dag_title}"
     root = Tree(dag_title)
     for nodeid, node in nodesbyid.items():
         if incount[nodeid] == 0:
             root.add(node)
     return root
 
-def dag_info_with_exec(dag, problem_nodes=None):
-    problem_nodes = problem_nodes or set()
+def dag_info_with_exec(dag, problem_info=None):
+    problem_info = problem_info or defaultdict(str)
     out = {"title": f"{dag['title']} ({dag['id']})", "children": []}
     nodesbyid = {}
     nodes = dag.get("nodes", [])
@@ -69,8 +75,10 @@ def dag_info_with_exec(dag, problem_nodes=None):
     for node in nodes:
         nodeid = node["id"]
         title = node["title"] + f"  ({nodeid})"
-        if nodeid in problem_nodes:
+        if problem_info[nodeid] == "yes":
             title = f"[Problem] - {title}"
+        elif problem_info[nodeid] == "no":
+            title = f"[Not Problem] - {title}"
         nodesbyid[nodeid] = {"title": title, "children": []}
 
     for srcnode, edgelist in edges.items():
