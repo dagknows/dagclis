@@ -32,4 +32,5 @@ def new(ctx: typer.Context,
 @app.command()
 def get(ctx: typer.Context,
         exec_id: str = typer.Option(..., help = "ID of execution to get")):
-    oldapi("getJob", {"job_id": exec_id}, access_token=ctx.obj.access_token)
+    present(ctx, newapi(ctx, f"/v1/executions/{exec_id}"))
+    # oldapi("getJob", {"job_id": exec_id}, access_token=ctx.obj.access_token)
