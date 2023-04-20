@@ -9,18 +9,19 @@ app = typer.Typer()
 def get(ctx: typer.Context,
         dag_id: str = typer.Option(None, help="Dag ID in the context of which to get the Node - only for single gets"),
         node_ids: List[str] = typer.Argument(None, help = "IDs of the Nodes to be fetched")):
+    payload = {}
+    if dag_id:
+        payload["dag_id"] = dag_id
     if not node_ids:
         ctx.obj.tree_transformer = lambda obj: node_list_transformer(obj["nodes"])
-        present(ctx, newapi(ctx, "/v1/nodes", { }, "GET"))
+        present(ctx, newapi(ctx, "/v1/nodes", payload, "GET"))
     elif len(node_ids) == 1:
         ctx.obj.tree_transformer = lambda obj: node_info_transformer(obj["node"])
-        payload = {}
-        if dag_id:
-            payload["dag_id"] = dag_id
         present(ctx, newapi(ctx, f"/v1/nodes/{node_ids[0]}", payload, "GET"))
     else:
         ctx.obj.tree_transformer = lambda obj: node_list_transformer(obj["nodes"].values())
-        present(ctx, newapi(ctx, "/v1/nodes:batchGet", { "ids": node_ids }, "GET"))
+        payload["ids"] = node_ids
+        present(ctx, newapi(ctx, "/v1/nodes:batchGet", payload, "GET"))
 
 @app.command()
 def search(ctx: typer.Context, title: str = typer.Option("", help = "Title to search for Nodes by")):

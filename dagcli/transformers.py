@@ -1,16 +1,23 @@
 from ipdb import set_trace
 
 def dag_info_transformer(dag):
-    out = {"title": f"{dag['id']} - {dag['title']}"}
-    nodes = dag.get("nodes", {})
-    for nodeid, edgelist in nodes.items():
-        if "children" not in out: out["children"] = []
-        child = {"title": "Node " + nodeid}
-        edges = edgelist.get("edges", [])
-        for edge in edges:
-            if "children" not in child: child["children"] = []
-            child["children"].append({"title": edge["destNode"]})
-        out["children"].append(child)
+    out = {"title": f"{dag['id']} - {dag['title']}", "children": []}
+    nodesbyid = {}
+    nodes = dag.get("nodes", [])
+    edges = dag.get("edges", {})
+    for node in nodes:
+        nodeid = node["id"]
+        nodesbyid[nodeid] = {"title": nodeid + "  :  " + node["title"]}
+        out["children"].append(nodesbyid[nodeid])
+
+    for srcnode, edgelist in edges.items():
+        children = edgelist.get("edges", [])
+        for next in children:
+            destnodeid = next["destNode"]
+            destnode = nodesbyid[destnodeid]
+            if "children" not in nodesbyid[srcnode]: nodesbyid[srcnode]["children"] = []
+            nodesbyid[srcnode]["children"].append({"title": destnode["title"]})
+    set_trace()
     return out
 
 def dag_list_transformer(dags):
