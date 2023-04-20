@@ -5,7 +5,10 @@ from boltons.iterutils import remap
 from rich import print
 
 def present(ctx: typer.Context, results):
-    results = remap(results, lambda p, k, v: v is not None)
+    def unnecessary_fields(p, k, v):
+        return v is not None and k != "requesting_user" and k != "proxy"
+
+    results = remap(results, unnecessary_fields)
     if ctx.obj.output_format == "json":
         print(json.dumps(results, indent=4))
     elif ctx.obj.output_format == "yaml":

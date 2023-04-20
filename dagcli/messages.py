@@ -2,6 +2,8 @@
 import typer
 from typing import List
 from dagcli.client import newapi, oldapi
+from dagcli.utils import present
+from dagcli.transformers import *
 app = typer.Typer()
 
 
@@ -9,7 +11,9 @@ app = typer.Typer()
 def list(ctx: typer.Context,
          session_id: str = typer.Option(..., help = "ID of session in which to get messages"),
          query: str = typer.Option("", help = "Search messages by text/subject")):
-    oldapi("getConvOrCreate", {"id": session_id}, access_token=ctx.obj.access_token)
+    if ctx.obj.output_format == "tree": 
+        ctx.obj.data["output_format"] = "yaml"
+    present(ctx, oldapi("getConvOrCreate", {"id": session_id}, access_token=ctx.obj.access_token))
 
 @app.command()
 def get(ctx: typer.Context,
@@ -17,9 +21,9 @@ def get(ctx: typer.Context,
     if ctx.obj.output_format == "tree": 
         ctx.obj.data["output_format"] = "yaml"
     if len(message_ids) == 1:
-        newapi(ctx, f"/v1/messages/{message_ids[0]}", { }, "GET")
+        present(ctx, newapi(ctx, f"/v1/messages/{message_ids[0]}", { }, "GET"))
     else:
-        newapi(ctx, "/v1/messages:batchGet", { "ids": message_ids }, "GET")
+        present(ctx, newapi(ctx, "/v1/messages:batchGet", { "ids": message_ids }, "GET"))
 
 @app.command()
 def send(ctx: typer.Context, 

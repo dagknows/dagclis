@@ -147,8 +147,7 @@ def oldapi(cmd, payload=None, url="https://localhost:443", access_token=""):
     fullurl = f"{url}/{cmd}"
     headers = {"Authorization": f"Bearer {access_token}"}
     resp = requests.post(fullurl, json=payload or {}, headers=headers, verify=False)
-    print(json.dumps(resp.json(), indent=4))
-    return resp
+    return resp.json()
 
 def newapi(ctx: typer.Context, path, payload=None, method = ""):
     url = make_url(ctx.obj.data["api_host"], path)
