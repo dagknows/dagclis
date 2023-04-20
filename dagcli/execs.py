@@ -45,9 +45,16 @@ def get(ctx: typer.Context,
     dagid = execution["dagId"]
     dag = newapi(ctx, f"/v1/dags/{dagid}")
     if ctx.obj.output_format == "tree": 
-        ctx.obj.data["output_format"] = "yaml"
-        richtree = rich_dag_info_with_exec(dag["dag"], problem_info)
         from rich import print
+        print("Execution results from nodes: ")
+        for result in execution.get("results", []):
+            tshootinfo = result["info"]["tshoot_info"]
+            for nodeid, nodeinfo in tshootinfo.items():
+                if nodeinfo.get("_to_session", {}):
+                    print(nodeid, json.dumps(nodeinfo["_to_session"], indent=4))
+
+        richtree = rich_dag_info_with_exec(dag["dag"], problem_info)
+        print("Execution Summary: ")
         print(richtree)
     else:
         present(ctx, execution)
