@@ -1,13 +1,13 @@
 from ipdb import set_trace
 
 def dag_info_transformer(dag):
-    out = {"title": f"{dag['id']} - {dag['title']}", "children": []}
+    out = {"title": f"{dag['title']} ({dag['id']})", "children": []}
     nodesbyid = {}
     nodes = dag.get("nodes", [])
     edges = dag.get("edges", {})
     for node in nodes:
         nodeid = node["id"]
-        nodesbyid[nodeid] = {"title": nodeid + "  :  " + node["title"]}
+        nodesbyid[nodeid] = {"title": node["title"] + f"  ({nodeid})"}
         out["children"].append(nodesbyid[nodeid])
 
     for srcnode, edgelist in edges.items():
@@ -26,7 +26,7 @@ def dag_list_transformer(dags):
 def node_info_transformer(dagnode):
     node = dagnode["node"]
     edges = dagnode.get("outEdges", {}).get("edges", [])
-    out = {"title": f"{node['id']}  :   {node['title']}"}
+    out = {"title": f"{node['title']} ({node['id']})"}
     for edge in edges:
         if "children" not in out: out["children"] = []
         out["children"].append({"title": edge["destNode"]})
