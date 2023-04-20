@@ -72,7 +72,7 @@ class DagKnowsConfig:
     def client(self):
         if self._client is None:
             host = self.data["reqrouter_host"]
-            self._client = SessionClient(host, self.getpath("sessions"))
+            self._client = SessionClient(host, self.getpath("cookies"))
         return self._client
 
     @property

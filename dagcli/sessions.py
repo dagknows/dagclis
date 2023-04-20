@@ -1,3 +1,4 @@
+from ipdb import set_trace
 import typer
 from typing import List
 from dagcli.client import newapi
@@ -57,3 +58,37 @@ def remove_user(ctx: typer.Context, session_id: str, user_ids: List[str] = typer
         "session": {},
         "remove_users": user_ids,
     }, "PATCH"))
+
+@app.command()
+def record(ctx: typer.Context,
+           session_id: str = typer.Option(None, help="Session ID to use"),
+           subject: str = typer.Option(None, help="Create a new session with this subject")):
+    """ Logs into DagKnows and installs a new access token. """
+    if not session_id:
+        if not subject:
+            confirm = typer.confirm("You have not passed a session_id.  Would you like to create a new session instead?", abort=True)
+            if confirm:
+                subject = typer.prompt("Enter the subject of your session")
+
+            print("Subject: ", subject)
+            if not subject.strip():
+                print("Please enter a valid subject.")
+                sys.exit(1)
+
+            # Todo - create
+            session = newapi(ctx, "/v1/sessions", { "subject": subject, }, "POST")
+            session_id = session["session"]["id"]
+
+    ctx.obj.getpath(f"sessions/{session_id}", is_dir=True, ensure=True)
+    ctx.obj.getpath("enable_recording", ensure=True)
+    with open(ctx.obj.getpath("current_session"), "w") as currsessfile:
+        currsessfile.write(session_id)
+    typer.echo("Congratulations.  You are now recording")
+
+@app.command()
+def stop(ctx: typer.Context):
+    """ Logs into DagKnows and installs a new access token. """
+    enable_file = ctx.obj.getpath("enable_recording")
+    if os.path.isfile(enable_file):
+        os.remove(enable_file)
+    typer.echo("Congratulations.  You have stopped recording")
