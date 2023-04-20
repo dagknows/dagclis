@@ -3,9 +3,7 @@ from ipdb import set_trace
 import typer
 import requests
 import json
-import re
-import os
-import pickle
+import os, sys
 from typing import List
 
 def make_url(host, path):
@@ -50,10 +48,12 @@ class SessionClient:
             HTTPConnection.debuglevel = 1
 
     def savecookies(self):
+        import pickle
         with open(self.session_file, 'wb') as f:
             pickle.dump(self.session.cookies, f)
 
     def loadcookies(self):
+        import pickle
         if os.path.isfile(self.session_file):
             with open(self.session_file, 'rb') as f:
                 self.session.cookies.update(pickle.load(f))
@@ -64,6 +64,7 @@ class SessionClient:
         resp = self.session.get(url)
         content = resp.content
         contentstr = str(content)
+        import re
         m = re.search(r"(\<input[^>]*name=\"csrf_token\"[^>]*)value=\"([^\"]*)\"", contentstr)
         if not m or len(m.groups()) != 2:
             raise Exception(f"Invalid sign-in URL: f{url}")
@@ -168,10 +169,10 @@ def newapi(ctx: typer.Context, path, payload=None, method = ""):
         resp = methfunc(url, headers=headers)
     # print(json.dumps(resp.json(), indent=4))
     result = resp.json()
-    """
-    from pprint import pprint
-    pprint(result)
-    import yaml
-    print(yaml.dump(result))
-    """
+    if resp.status_code != 200:
+        if "message" in result:
+            print(result["message"])
+        else:
+            print("Request failed: ", result)
+        sys.exit(1)
     return result
