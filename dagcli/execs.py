@@ -42,7 +42,6 @@ def get(ctx: typer.Context,
     richtree = rich_dag_info_with_exec(dag["dag"], problem_nodes)
     from rich import print
     print(richtree)
-    set_trace()
     # ctx.obj.tree_transformer = lambda obj: dag_info_with_exec(obj["dag"], problem_nodes)
     # present(ctx, dag)
     # oldapi("getJob", {"job_id": exec_id}, access_token=ctx.obj.access_token)
