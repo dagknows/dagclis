@@ -11,7 +11,7 @@ app = typer.Typer()
 def create(ctx: typer.Context,
            title: str = typer.Option(..., help = "Title of the new Dag"),
            description: str = typer.Option("", help = "Description string for your Dag")):
-    ctx.obj.tree_transformer = lambda obj: dag_info_transformer(obj["dag"])
+    ctx.obj.tree_transformer = lambda obj: dag_info_with_exec(obj["dag"])
     present(ctx, newapi(ctx, "/v1/dags", {
         "title": title,
         "description": description,

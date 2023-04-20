@@ -1,23 +1,6 @@
 from ipdb import set_trace
-
-def dag_info_transformer(dag):
-    out = {"title": f"{dag['title']} ({dag['id']})", "children": []}
-    nodesbyid = {}
-    nodes = dag.get("nodes", [])
-    edges = dag.get("edges", {})
-    for node in nodes:
-        nodeid = node["id"]
-        nodesbyid[nodeid] = {"title": node["title"] + f"  ({nodeid})"}
-        out["children"].append(nodesbyid[nodeid])
-
-    for srcnode, edgelist in edges.items():
-        children = edgelist.get("edges", [])
-        for next in children:
-            destnodeid = next["destNode"]
-            destnode = nodesbyid[destnodeid]
-            if "children" not in nodesbyid[srcnode]: nodesbyid[srcnode]["children"] = []
-            nodesbyid[srcnode]["children"].append({"title": destnode["title"]})
-    return out
+import json
+from collections import defaultdict
 
 def dag_list_transformer(dags):
     return {"title": "dags",
@@ -39,3 +22,66 @@ def node_list_transformer(nodes):
 """
 dagcli nodes get R7YGKMUGWMDlP1HkWg68H9m8m8aejTy6 --dag-id Mu3CFBZvlwNjYoZVA13SC8Gpm4D16Fdi
 """
+
+def rich_dag_info_with_exec(dag, problem_nodes=None):
+    from rich.tree import Tree
+
+    nodesbyid = {}
+    nodes = dag.get("nodes", [])
+    edges = dag.get("edges", {})
+    incount = defaultdict(int)
+    for node in nodes:
+        nodeid = node["id"]
+        title = node["title"] + f"  ({nodeid})"
+        if nodeid in problem_nodes:
+            title = f"[red][Problem] - {title}"
+        else:
+            title = f"[green]{title}"
+        treenode = Tree(title)
+        nodesbyid[nodeid] = treenode
+
+    for srcnode, edgelist in edges.items():
+        children = edgelist.get("edges", [])
+        for next in children:
+            destnodeid = next["destNode"]
+            incount[destnodeid] += 1
+            destnode = nodesbyid[destnodeid]
+            nodesbyid[srcnode].add(destnode)
+
+    dag_title = f"{dag['title']} ({dag['id']})"
+    if problem_nodes:
+        dag_title = "[red]" + dag_title
+    else:
+        dag_title = "[green]" + dag_title
+    root = Tree(dag_title)
+    for nodeid, node in nodesbyid.items():
+        if incount[nodeid] == 0:
+            root.add(node)
+    return root
+
+def dag_info_with_exec(dag, problem_nodes=None):
+    problem_nodes = problem_nodes or set()
+    out = {"title": f"{dag['title']} ({dag['id']})", "children": []}
+    nodesbyid = {}
+    nodes = dag.get("nodes", [])
+    edges = dag.get("edges", {})
+    incount = defaultdict(int)
+    for node in nodes:
+        nodeid = node["id"]
+        title = node["title"] + f"  ({nodeid})"
+        if nodeid in problem_nodes:
+            title = f"[Problem] - {title}"
+        nodesbyid[nodeid] = {"title": title, "children": []}
+
+    for srcnode, edgelist in edges.items():
+        children = edgelist.get("edges", [])
+        for next in children:
+            destnodeid = next["destNode"]
+            incount[destnodeid] += 1
+            destnode = nodesbyid[destnodeid]
+            nodesbyid[srcnode]["children"].append(destnode)
+
+    for nodeid, node in nodesbyid.items():
+        if incount[nodeid] == 0:
+            out["children"].append(node)
+    return out

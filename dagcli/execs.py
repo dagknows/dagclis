@@ -1,8 +1,10 @@
+from ipdb import set_trace
 import typer
 import json
 from typing import List
 from dagcli.client import newapi, oldapi
 from dagcli.utils import present
+from dagcli.transformers import *
 app = typer.Typer()
 
 @app.command()
@@ -32,7 +34,15 @@ def new(ctx: typer.Context,
 @app.command()
 def get(ctx: typer.Context,
         exec_id: str = typer.Option(..., help = "ID of execution to get")):
-    if ctx.obj.output_format == "tree": 
-        ctx.obj.data["output_format"] = "yaml"
-    present(ctx, newapi(ctx, f"/v1/executions/{exec_id}"))
+    execution = newapi(ctx, f"/v1/executions/{exec_id}")["execution"]
+    last_info = execution["results"][-1]["info"]
+    problem_nodes = set([x["node_id"] for x in last_info["confirm_problem"]])
+    dagid = execution["dagId"]
+    dag = newapi(ctx, f"/v1/dags/{dagid}")
+    richtree = rich_dag_info_with_exec(dag["dag"], problem_nodes)
+    from rich import print
+    print(richtree)
+    set_trace()
+    # ctx.obj.tree_transformer = lambda obj: dag_info_with_exec(obj["dag"], problem_nodes)
+    # present(ctx, dag)
     # oldapi("getJob", {"job_id": exec_id}, access_token=ctx.obj.access_token)
