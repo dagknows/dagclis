@@ -1,21 +1,23 @@
 
 source ./.bash-preexec.sh
-
-preexec() {
-   echo "dolar3 = $0 $1 $2 $3 - $*"
-}
    
-preexec2() {
+preexec() {
    PID=`echo $$`
+   CURR_SESSION=`cat ~/.dagknows/default/current_session`
+   SESSION_FOLDER=~/.dagknows/default/sessions/${CURR_SESSION}
    MYPPID=`ps -o ppid= -p ${PID} | xargs`
    MYPCMD=`ps -o comm= -p ${MYPPID} | xargs`
-   if [[ $MYPCMD = "script" ]]
-   then
-       echo "PROMPT: " "'${(%%)PS1}'" " CMD: " $3  >> ~/.commands
+   if [ -f ~/.dagknows/default/enable_recording ]; then
+     if [[ $MYPCMD = "script" ]]
+     then
+         echo "PROMPT: " "'${(%%)PS1}'" " CMD: " $1  >> ${SESSION_FOLDER}/.commands
+     else
+         echo "Sorry, the recording is not on. Turning it on now. Please type your command again"
+         #echo $1 > ${SESSION_FOLDER}/.leftover
+         script -a -q -F ${SESSION_FOLDER}/.cliblob
+     fi
    else
-       echo "Sorry, the recording is not on. Turning it on now. Please type your command again"
-       #echo $3 > ~/.leftover
-       script -a -q -F .cliblob
+     echo "Recording Disabled"
    fi
 }
 
