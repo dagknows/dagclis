@@ -32,9 +32,7 @@ def new(ctx: typer.Context,
 @app.command()
 def get(ctx: typer.Context,
         exec_id: str = typer.Option(..., help = "ID of execution to get")):
-    def dicttotree(node):
-        if type(node) is dict:
-            return {k: dicttotree(v) for k,v in node.items()}
-    ctx.obj.tree_transformer = lambda obj: f"Created Job: {obj['jobId']}"
+    if ctx.obj.output_format == "tree": 
+        ctx.obj.data["output_format"] = "yaml"
     present(ctx, newapi(ctx, f"/v1/executions/{exec_id}"))
     # oldapi("getJob", {"job_id": exec_id}, access_token=ctx.obj.access_token)
