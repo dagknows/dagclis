@@ -17,7 +17,6 @@ def dag_info_transformer(dag):
             destnode = nodesbyid[destnodeid]
             if "children" not in nodesbyid[srcnode]: nodesbyid[srcnode]["children"] = []
             nodesbyid[srcnode]["children"].append({"title": destnode["title"]})
-    set_trace()
     return out
 
 def dag_list_transformer(dags):
