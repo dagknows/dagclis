@@ -1,5 +1,6 @@
 typer[all]
 requests
+coverage
 boltons
 swagger-parser
 pyyaml
