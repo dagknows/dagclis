@@ -15,9 +15,13 @@ def common_params(ctx: typer.Context,
                   format: str = typer.Option("tree", help='Output format to print as - json, yaml, tree')):
     assert ctx.obj is None
 
-    api_host = os.environ.get('DagKnowsApiGatewayHost', "http://localhost:8080/api")
+    api_host = os.environ.get('DagKnowsApiGatewayHost', "http://localhost:9080/api")
     # reqrouter_host = os.environ.get('DagKnowsReqRouterHost', "https://demo.dagknows.com:8443")
-    reqrouter_host = os.environ.get('DagKnowsReqRouterHost', "https://localhost:443")
+    reqrouter_host = os.environ.get('DagKnowsReqRouterHost', "")
+    headers={
+        "Authorization": f"Bearer {access_token}",
+    }
+    if reqrouter_host: headers["DagKnowsReqRouterHost"] = reqrouter_host
     dkconfig = DagKnowsConfig(os.path.expanduser(dagknows_home),
                              api_host = api_host,
                              reqrouter_host=reqrouter_host,
@@ -27,10 +31,7 @@ def common_params(ctx: typer.Context,
                              log_response=log_response,
                              dagknows_home=os.path.expanduser(dagknows_home),
                              profile=profile,
-                             headers={
-                                "Authorization": f"Bearer {access_token}",
-                                "DagKnowsReqRouterHost": reqrouter_host,
-                             })
+                             headers=headers)
     ctx.obj = dkconfig
 
 def ensure_access_token(ctx: typer.Context):
