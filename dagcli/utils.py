@@ -2,7 +2,6 @@ import typer, yaml, json
 from pprint import pprint
 from ipdb import set_trace
 from boltons.iterutils import remap
-from rich import print
 
 def present(ctx: typer.Context, results):
     def unnecessary_fields(p, k, v):

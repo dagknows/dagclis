@@ -12,7 +12,7 @@ def common_params(ctx: typer.Context,
                   access_token: str = typer.Option(None, envvar='DagKnowsAccessToken', help='Access token for accessing DagKnows APIs'),
                   log_request: bool = typer.Option(False, help='Enables logging of requests'),
                   log_response: bool = typer.Option(False, help='Enables logging of responses'),
-                  format: str = typer.Option("tree", help='Output format to print as - json, yaml, tree')):
+                  format: str = typer.Option("tree", envvar='DagKnowsOutputFormat', help='Output format to print as - json, yaml, tree')):
     assert ctx.obj is None
 
     # For now these are env vars and not params yet
