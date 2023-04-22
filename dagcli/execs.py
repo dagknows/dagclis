@@ -29,12 +29,12 @@ def new(ctx: typer.Context,
     if params: payload["params"] = json.loads(params)
     if file: payload["params"] = json.load(file)
     ctx.obj.tree_transformer = lambda obj: f"Created Job: {obj['jobId']}"
-    present(ctx, newapi(ctx, f"/v1/dags/{dag_id}/executions", payload, "POST"))
+    present(ctx, newapi(ctx.obj, f"/v1/dags/{dag_id}/executions", payload, "POST"))
 
 @app.command()
 def get(ctx: typer.Context,
         exec_id: str = typer.Option(..., help = "ID of execution to get")):
-    execution = newapi(ctx, f"/v1/executions/{exec_id}")["execution"]
+    execution = newapi(ctx.obj, f"/v1/executions/{exec_id}")["execution"]
     problem_info = defaultdict(str)
     if "results" in execution and execution["results"]:
         last_info = execution["results"][-1]["info"]
@@ -43,7 +43,7 @@ def get(ctx: typer.Context,
         for node in last_info["confirm_not_problem"]:
             problem_info[node["node_id"]] = "no"
     dagid = execution["dagId"]
-    dag = newapi(ctx, f"/v1/dags/{dagid}")
+    dag = newapi(ctx.obj, f"/v1/dags/{dagid}")
     if ctx.obj.output_format == "tree": 
         from rich import print
         print("Execution results from nodes: ")

@@ -149,15 +149,16 @@ def oldapi(cmd, payload=None, url="https://localhost:443", access_token=""):
     resp = requests.post(fullurl, json=payload or {}, headers=headers, verify=False)
     return resp.json()
 
-def newapi(ctx: typer.Context, path, payload=None, method = ""):
-    url = make_url(ctx.obj.data["api_host"], path)
+def newapi(dkconfig: "DagKnowsConfig", path, payload=None, method = ""):
+    apihost = dkconfig.resolve("api_host")
+    url = make_url(apihost, path)
     method = method.lower()
-    headers = ctx.obj.data["headers"]
+    headers = dkconfig.headers
     if not method.strip():
         if payload: method = "post"
         else: method = "get"
     methfunc = getattr(requests, method)
-    if ctx.obj.data["log_request"] == True:
+    if dkconfig.resolve("log_request") == True:
         print(f"API Request: {method.upper()} {url}: ", payload)
     if payload:
         if method == "get":

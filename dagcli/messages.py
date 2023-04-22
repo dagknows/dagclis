@@ -21,9 +21,9 @@ def get(ctx: typer.Context,
     if ctx.obj.output_format == "tree": 
         ctx.obj.data["output_format"] = "yaml"
     if len(message_ids) == 1:
-        present(ctx, newapi(ctx, f"/v1/messages/{message_ids[0]}", { }, "GET"))
+        present(ctx, newapi(ctx.obj, f"/v1/messages/{message_ids[0]}", { }, "GET"))
     else:
-        present(ctx, newapi(ctx, "/v1/messages:batchGet", { "ids": message_ids }, "GET"))
+        present(ctx, newapi(ctx.obj, "/v1/messages:batchGet", { "ids": message_ids }, "GET"))
 
 @app.command()
 def send(ctx: typer.Context, 

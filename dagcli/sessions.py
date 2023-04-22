@@ -9,7 +9,7 @@ app = typer.Typer()
 @app.command()
 def create(ctx: typer.Context,
            subject: str = typer.Option(..., help = "Subject of the new session")):
-    newapi(ctx, "/v1/sessions", {
+    newapi(ctx.obj, "/v1/sessions", {
         "subject": subject,
     }, "POST")
 
@@ -18,24 +18,24 @@ def get(ctx: typer.Context, session_ids: List[str] = typer.Argument(None, help =
     if ctx.obj.output_format == "tree": 
         ctx.obj.data["output_format"] = "yaml"
     if not session_ids:
-        present(ctx, newapi(ctx, "/v1/sessions", { }, "GET"))
+        present(ctx, newapi(ctx.obj, "/v1/sessions", { }, "GET"))
     elif len(session_ids) == 1:
-        present(ctx, newapi(ctx, f"/v1/sessions/{session_ids[0]}", { }, "GET"))
+        present(ctx, newapi(ctx.obj, f"/v1/sessions/{session_ids[0]}", { }, "GET"))
     else:
-        present(ctx, newapi(ctx, "/v1/sessions:batchGet", { "ids": session_ids }, "GET"))
+        present(ctx, newapi(ctx.obj, "/v1/sessions:batchGet", { "ids": session_ids }, "GET"))
 
 @app.command()
 def delete(ctx: typer.Context, session_ids: List[str] = typer.Argument(..., help = "List of ID of the Sessions to be deleted")):
     if ctx.obj.output_format == "tree": 
         ctx.obj.data["output_format"] = "yaml"
     for sessionid in session_ids:
-        present(ctx, newapi(ctx, f"/v1/sessions/{sessionid}", None, "DELETE"))
+        present(ctx, newapi(ctx.obj, f"/v1/sessions/{sessionid}", None, "DELETE"))
 
 @app.command()
 def search(ctx: typer.Context, subject: str = typer.Option("", help = "Subject to search for Sessions by")):
     if ctx.obj.output_format == "tree": 
         ctx.obj.data["output_format"] = "yaml"
-    return present(ctx, newapi(ctx, "/v1/sessions", {
+    return present(ctx, newapi(ctx.obj, "/v1/sessions", {
         "title": subject,
     }, "GET"))
 
@@ -44,7 +44,7 @@ def add_user(ctx: typer.Context, session_id: str, user_ids: List[str] = typer.Ar
     if not user_ids: return
     if ctx.obj.output_format == "tree": 
         ctx.obj.data["output_format"] = "yaml"
-    present(ctx, newapi(ctx, f"/v1/sessions/{session_id}", {
+    present(ctx, newapi(ctx.obj, f"/v1/sessions/{session_id}", {
         "session": {},
         "add_users": user_ids,
     }, "PATCH"))
@@ -54,7 +54,7 @@ def remove_user(ctx: typer.Context, session_id: str, user_ids: List[str] = typer
     if not user_ids: return
     if ctx.obj.output_format == "tree": 
         ctx.obj.data["output_format"] = "yaml"
-    present(ctx, newapi(ctx, f"/v1/sessions/{session_id}", {
+    present(ctx, newapi(ctx.obj, f"/v1/sessions/{session_id}", {
         "session": {},
         "remove_users": user_ids,
     }, "PATCH"))
@@ -76,7 +76,7 @@ def record(ctx: typer.Context,
                 sys.exit(1)
 
             # Todo - create
-            session = newapi(ctx, "/v1/sessions", { "subject": subject, }, "POST")
+            session = newapi(ctx.obj, "/v1/sessions", { "subject": subject, }, "POST")
             session_id = session["session"]["id"]
 
     ctx.obj.getpath(f"sessions/{session_id}", is_dir=True, ensure=True)
