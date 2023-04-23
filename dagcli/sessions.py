@@ -72,8 +72,7 @@ def record(ctx: typer.Context,
 
             print("Subject: ", subject)
             if not subject.strip():
-                print("Please enter a valid subject.")
-                sys.exit(1)
+                ctx.fail("Please enter a valid subject.")
 
             # Todo - create
             session = newapi(ctx.obj, "/v1/sessions", { "subject": subject, }, "POST")

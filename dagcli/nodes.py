@@ -1,4 +1,4 @@
-import typer
+import typer, sys
 from typing import List
 from dagcli.client import newapi
 from dagcli.utils import present
@@ -32,15 +32,41 @@ def search(ctx: typer.Context, title: str = typer.Option("", help = "Title to se
 @app.command()
 def modify(ctx: typer.Context, node_id: str = typer.Argument(..., help = "ID of the Dag to be updated"),
            title: str = typer.Option(None, help="New title to be set for the Dag"),
-           description: str = typer.Option(None, help="New description to be set for the Dag")):
-    update_mask = []
+           description: str = typer.Option(None, help="New description to be set for the Dag"),
+           input_params: str = typer.Option("", help="Comma seperated list of input params for this node"),
+           detection: str = typer.Option(None, help="Steps with the commands for detection"),
+           detection_script: typer.FileText = typer.Option(None, help="Path of the file containing the detection script"),
+           remediation: str = typer.Option(None, help="Steps with the commands for remediation"),
+           remediation_script: typer.FileText = typer.Option(None, help="Path of the file containing the remediation script")):
+    update_mask = set()
     params = {}
     if title: 
-        update_mask.append("title")
+        update_mask.add("title")
         params["title"] = title
     if description: 
-        update_mask.append("description")
+        update_mask.add("detection")
         params["description"] = description
+    if input_params:
+        update_mask.add("input_params")
+        params["input_params"] = {k:k for k in input_params.split(",")}
+
+    if detection:
+        update_mask.add("detection")
+        params["detection"] = { "script": detection }
+    elif detection_script:
+        update_mask.add("detection")
+        params["detection"] = { "script": detection_script.read() }
+
+    if remediation:
+        update_mask.add("remediation")
+        params["remediation"] = { "script": remediation }
+    elif remediation_script:
+        update_mask.add("remediation")
+        params["remediation"] = { "script": remediation_script.read() }
+
+    if not update_mask:
+        ctx.get_help()
+        ctx.fail("Atleast one option must be specified")
 
     present(ctx, newapi(ctx.obj, f"/v1/nodes/{node_id}", {
         "node": {

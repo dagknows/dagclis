@@ -30,8 +30,7 @@ def common_params(ctx: typer.Context,
 
 def ensure_access_token(ctx: typer.Context):
     if not ctx.obj.access_token:
-        print("Access token needed.  Either login to install one or pass one via --access-token or set the DagKnowsAccessToken environment variable to it.")
-        sys.exit(1)
+        ctx.fail("Access token needed.  Either login to install one or pass one via --access-token or set the DagKnowsAccessToken environment variable to it.")
 
 @app.command()
 def init(ctx: typer.Context,

@@ -41,7 +41,6 @@ NODEID9=`dk nodes get | jq -r ".nodes | .[] | .node | select(.title == \"$NODE_P
 NODEID10=`dk nodes get | jq -r ".nodes | .[] | .node | select(.title == \"$NODE_PREFIX 10\") | .id"`
 
 echo "Creating edges"
-dk dag connect --dag-id $CURR_DAG_ID --src-node-id $NODEID1 --dest-node-id $NODEID2
 dk dags connect --dag-id $CURR_DAG_ID --src-node-id $NODEID1 --dest-node-id $NODEID2
 dk dags connect --dag-id $CURR_DAG_ID --src-node-id $NODEID1 --dest-node-id $NODEID3
 dk dags connect --dag-id $CURR_DAG_ID --src-node-id $NODEID2 --dest-node-id $NODEID4
@@ -54,3 +53,21 @@ dk dags connect --dag-id $CURR_DAG_ID --src-node-id $NODEID6 --dest-node-id $NOD
 dk dags connect --dag-id $CURR_DAG_ID --src-node-id $NODEID7 --dest-node-id $NODEID9
 dk dags connect --dag-id $CURR_DAG_ID --src-node-id $NODEID8 --dest-node-id $NODEID10
 dk dags connect --dag-id $CURR_DAG_ID --src-node-id $NODEID9 --dest-node-id $NODEID10
+
+echo echo Executing \"$NODEID1 - $NODE_PREFIX 1\" > /tmp/node1
+echo echo Executing \"$NODEID3 - $NODE_PREFIX 3\" > /tmp/node3
+echo echo Executing \"$NODEID5 - $NODE_PREFIX 5\" > /tmp/node5
+echo echo Executing \"$NODEID7 - $NODE_PREFIX 7\" > /tmp/node7
+echo echo Executing \"$NODEID9 - $NODE_PREFIX 9\" > /tmp/node9
+
+dk nodes modify $NODEID1 --detection-script /tmp/node1
+dk nodes modify $NODEID3 --detection-script /tmp/node3
+dk nodes modify $NODEID5 --detection-script /tmp/node5
+dk nodes modify $NODEID7 --detection-script /tmp/node7
+dk nodes modify $NODEID9 --detection-script /tmp/node9
+
+dk nodes modify $NODEID2 --detection "echo \"Executing $NODEID1 - $NODE_PREFIX 2\""
+dk nodes modify $NODEID4 --detection "echo \"Executing $NODEID1 - $NODE_PREFIX 4\""
+dk nodes modify $NODEID6 --detection "echo \"Executing $NODEID1 - $NODE_PREFIX 6\""
+dk nodes modify $NODEID8 --detection "echo \"Executing $NODEID1 - $NODE_PREFIX 8\""
+dk nodes modify $NODEID10 --detection "echo \"Executing $NODEID1 - $NODE_PREFIX 10\""
