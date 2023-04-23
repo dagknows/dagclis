@@ -1,21 +1,29 @@
 
-
+SESSION_SUBJECT="Session4Demo"
 DAG_TITLE="Dag4Demo"
 NODE_PREFIX="$DAG_TITLE Node"
 
-for dagid in `dk --format=json dags get | jq -r ".dags| .[] | select(.title|test(\"^$DAG_PREFIX\")) | .id"`; do
-  echo "Deleting Dag $dagid"
+for sessionid in `dk --format=json sessions get | jq -r ".sessions| .[] | select(.subject|test(\"^$SESSION_SUBJECT\")) | .id"`; do
+  echo "Deleting Demo Session $sessionid"
+  dk sessions delete $sessionid
+done
+
+for dagid in `dk --format=json dags get | jq -r ".dags| .[] | select(.title|test(\"^$DAG_TITLE\")) | .id"`; do
+  echo "Deleting Demo Dag $dagid"
   dk dags delete $dagid
 done
 
 # Also remove test nodes
 for nodeid in `dk --format=json  nodes get | jq -r ".nodes | .[] | .node | select(.title|test(\"^$NODE_PREFIX\")) | .id"`; do
-  echo "Deleting node $nodeid"
+  echo "Deleting Demo Node $nodeid"
   dk nodes delete $nodeid
 done
 
+dk sessions create --subject "$SESSION_SUBJECT"
+
 dk dags create --title "$DAG_TITLE"
 CURR_DAG_ID=`dk --format=json dags get | jq -r ".dags | .[] | select(.title == \"$DAG_TITLE\") | .id"`
+CURR_SESSION_ID=`dk --format=json sessions get | jq -r ".sessions| .[] | select(.subject|test(\"^$SESSION_SUBJECT\")) | .id"`
 
 echo "Creating 10 demo nodes"
 dk nodes create --title "$NODE_PREFIX 1" --dag-id $CURR_DAG_ID
@@ -71,3 +79,6 @@ dk nodes modify $NODEID4 --detection "echo \"Executing $NODEID1 - $NODE_PREFIX 4
 dk nodes modify $NODEID6 --detection "echo \"Executing $NODEID1 - $NODE_PREFIX 6\""
 dk nodes modify $NODEID8 --detection "echo \"Executing $NODEID1 - $NODE_PREFIX 8\""
 dk nodes modify $NODEID10 --detection "echo \"Executing $NODEID1 - $NODE_PREFIX 10\""
+
+# Now create an execution
+dk execs new --dag-id "$CURR_DAG_ID" --node-id "$NODEID1" --session-id "$CURR_SESSION_ID"  --proxy ourproxy
