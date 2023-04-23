@@ -9,10 +9,31 @@ class DagKnowsConfig:
     def __init__(self, homedir, **data):
         self.homedir = homedir
         self.data = data
-        self.profile_data = {}
+        self._curr_profile_data = {}
         self._client = None
         self.tree_transformer = None
         self.load()
+
+    @property
+    def headers(self):
+        out = {
+            "Authorization": f"Bearer {self.access_token}",
+        }
+        rrhost = self.resolve("reqrouter_host")
+        if rrhost: 
+            out["DagKnowsReqRouterHost"] = rrhost
+        return out
+
+    def get(self, datakey):
+        return self.data.get(datakey, None)
+
+    def resolve(self, datakey):
+        """ Tries to get pass an explicit value passed in. 
+        Otherwise resolves based on the value set in the current profile. """
+        out = self.data.get(datakey, None)
+        if out != False and not out:
+            return self.profile_data.get(datakey, None)
+        return out
 
     def getpath(self, path, is_dir=False, ensure=False):
         """ Gets name of a file within the home dir. """
@@ -26,7 +47,7 @@ class DagKnowsConfig:
                 parentpath, basepath = os.path.split(out)
                 if not os.path.isdir(parentpath):
                     os.makedirs(parentpath)
-                if not os.path.isfile(basepath):
+                if not os.path.isfile(out):
                     # if file doesnt exist then create an empty one
                     open(out, "w").write("")
         return out
@@ -39,23 +60,28 @@ class DagKnowsConfig:
     def access_token(self):
         # get the auth token from either one explicitly set
         # or form the current profile's list of auth tokens
-        if "access_token" in self.data:
+        out = self.data.get("access_token", None)
+        if out:
             return self.data["access_token"]
         if self.all_access_tokens:
-            return self.all_access_tokens[0]
+            return self.all_access_tokens[0]["value"]
         return None
 
     @property
     def all_access_tokens(self):
-        return self.profile_data.get("access_tokens", [])
+        return self._curr_profile_data.get("access_tokens", [])
 
     @all_access_tokens.setter
     def all_access_tokens(self, access_tokens):
         values = [atok for atok in access_tokens if not atok["revoked"]]
         for atok in values:
             atok["expires_at"] = time.time() + atok["expiry"]
-        self.profile_data["access_tokens"] = values
+        self._curr_profile_data["access_tokens"] = values
         self.save()
+
+    @property
+    def profile_data(self):
+        return self._curr_profile_data
 
     @property
     def curr_profile(self):
@@ -67,6 +93,7 @@ class DagKnowsConfig:
             self.save()
             self._client = None
             self.data["profile"] = newprofile
+            self.load()
 
     @property
     def client(self):
@@ -83,13 +110,13 @@ class DagKnowsConfig:
         if not os.path.isdir(self.homedir):
             print(f"Ensuring DagKnows home dir: {self.homedir}")
             os.makedirs(self.homedir)
-        data = open(self.config_file).read()
-        self.profile_data = json.loads(data) if data else {}
+        data = open(self.config_file).read().strip()
+        self._curr_profile_data = json.loads(data) if data else {}
 
     def save(self):
         """ Serializes the configs back (for the current profile) to files. """
         with open(self.config_file, "w") as configfile:
-            configfile.write(json.dumps(self.profile_data, indent=4))
+            configfile.write(json.dumps(self._curr_profile_data, indent=4))
 
     def ensure_host(self, host):
         normalized_host = host.replace("/", "_")

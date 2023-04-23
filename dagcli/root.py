@@ -7,53 +7,67 @@ app = typer.Typer(pretty_exceptions_show_locals=False)
 # This callback applies to *all* commands
 @app.callback()
 def common_params(ctx: typer.Context,
+                  dagknows_home: str = typer.Option("~/.dagknows", envvar="DagKnowsHomeDir", help="Dir for DagKnows configs"),
                   profile: str = typer.Option("default", envvar="DagKnowsProfile", help="DagKnows profile to use"),
                   access_token: str = typer.Option(None, envvar='DagKnowsAccessToken', help='Access token for accessing DagKnows APIs'),
-                  dagknows_home: str = typer.Option("~/.dagknows", envvar="DagKnowsHomeDir", help="Dir for DagKnows configs"),
                   log_request: bool = typer.Option(False, help='Enables logging of requests'),
                   log_response: bool = typer.Option(False, help='Enables logging of responses'),
-                  format: str = typer.Option("tree", help='Output format to print as - json, yaml, tree')):
+                  format: str = typer.Option("tree", envvar='DagKnowsOutputFormat', help='Output format to print as - json, yaml, tree')):
     assert ctx.obj is None
 
-    api_host = os.environ.get('DagKnowsApiGatewayHost', "https://demo.dagknows.com:8443/api")
-    # reqrouter_host = os.environ.get('DagKnowsReqRouterHost', "https://demo.dagknows.com:8443")
+    # For now these are env vars and not params yet
     reqrouter_host = os.environ.get('DagKnowsReqRouterHost', "")
-    headers={
-        "Authorization": f"Bearer {access_token}",
-    }
-    if reqrouter_host: headers["DagKnowsReqRouterHost"] = reqrouter_host
-    dkconfig = DagKnowsConfig(os.path.expanduser(dagknows_home),
-                             api_host = api_host,
-                             reqrouter_host=reqrouter_host,
-                             access_token=access_token,
-                             output_format=format,
-                             log_request=log_request,
-                             log_response=log_response,
-                             dagknows_home=os.path.expanduser(dagknows_home),
-                             profile=profile,
-                             headers=headers)
-    ctx.obj = dkconfig
+    api_host = os.environ.get('DagKnowsApiGatewayHost', "")
+    ctx.obj  = DagKnowsConfig(os.path.expanduser(dagknows_home),
+                              profile=profile,
+                              output_format=format,
+                              reqrouter_host=reqrouter_host,
+                              api_host=api_host,
+                              access_token=access_token,
+                              log_request=log_request,
+                              log_response=log_response)
 
 def ensure_access_token(ctx: typer.Context):
     if not ctx.obj.access_token:
-        print("Access token needed.  Either login to install one or pass one via --access-token or set the DagKnowsAccessToken environment variable to it.")
-        sys.exit(1)
+        ctx.fail("Access token needed.  Either login to install one or pass one via --access-token or set the DagKnowsAccessToken environment variable to it.")
 
 @app.command()
-def config(ctx: typer.Context, as_json: bool=typer.Option(False, help="Control whether print as json or yaml")):
-    """ Show all defaults and environments. """
-    if as_json:
-        from pprint import pprint
-        pprint(ctx.obj.data)
-    else:
-        import yaml
-        print(yaml.dump(ctx.obj.data))
-
-@app.command()
-def init(ctx: typer.Context):
+def init(ctx: typer.Context,
+         profile: str = typer.Option("default", help = "Name of the profie to initialize"),
+         access_token: str = typer.Option(None, help='Access token to initialize CLI with for this profile')):
     """ Initializes DagKnows config and state folders. """
     # Initialize the home directory
-    homedir = ctx.obj.data["dagknows_home"]
+    dkconfig = ctx.obj
+    # if os.path.isdir(homedir):
+        # confirm = typer.confirm("You already have a homedir.  Do you want to remove all data and re-initializes the Dagknows CLI?", abort=True)
+
+    # Enter the name of a default profile
+    dkconfig.curr_profile = profile
+    profile_data = dkconfig.profile_data
+    api_host = typer.prompt("Enter the api host to make api calls to: ", default="http://localhost:9080/api")
+    profile_data["api_host"] = api_host
+
+    if not access_token:
+        access_token = typer.prompt("Enter an access token: ")
+
+    profile_data["access_tokens"] = [
+        {"value": access_token}
+    ]
+    dkconfig.save()
+
+@app.command()
+def configs(ctx: typer.Context, as_json: bool=typer.Option(False, help="Control whether print as json or yaml")):
+    """ Show all defaults and environments. """
+    out = {
+        "profile_data": ctx.obj.profile_data,
+        "overrides": ctx.obj.data,
+    }
+    if as_json:
+        from pprint import pprint
+        pprint(out)
+    else:
+        import yaml
+        print(yaml.dump(out, sort_keys=False))
 
 def get_token_for_label(homedir: str, label: str) -> str:
     pass
