@@ -15,7 +15,7 @@ def common_params(ctx: typer.Context,
                   format: str = typer.Option("tree", help='Output format to print as - json, yaml, tree')):
     assert ctx.obj is None
 
-    api_host = os.environ.get('DagKnowsApiGatewayHost', "http://localhost:9080/api")
+    api_host = os.environ.get('DagKnowsApiGatewayHost', "https://demo.dagknows.com:8443/api")
     # reqrouter_host = os.environ.get('DagKnowsReqRouterHost', "https://demo.dagknows.com:8443")
     reqrouter_host = os.environ.get('DagKnowsReqRouterHost', "")
     headers={
