@@ -58,13 +58,23 @@ def modify(ctx: typer.Context, dag_id: str = typer.Argument(..., help = "ID of t
     }, "PATCH"))
 
 @app.command()
+def add_nodes(ctx: typer.Context, 
+              dag_id: str = typer.Option(..., help = "Dag ID to remove nodes from"),
+              node_ids: List[str] = typer.Argument(..., help = "List of Node IDs to add to the Dag")):
+    # dagcli nodes create title --dag_id = this
+    if node_ids:
+        present(ctx, newapi(ctx.obj, f"/v1/dags/{dag_id}", {
+            "add_nodes": node_ids,
+        }, "PATCH"))
+
+@app.command()
 def remove_nodes(ctx: typer.Context, 
-                 dag_id: str = typer.Option(..., help = "Dag ID to add a new edge in"),
+                 dag_id: str = typer.Option(..., help = "Dag ID to remove nodes from"),
                  node_ids: List[str] = typer.Argument(..., help = "List of Node IDs to remove from the Dag")):
-    if not node_ids: return
-    present(ctx, newapi(ctx.obj, f"/v1/dags/{dag_id}", {
-        "remove_nodes": node_ids,
-    }, "PATCH"))
+    if node_ids:
+        present(ctx, newapi(ctx.obj, f"/v1/dags/{dag_id}", {
+            "remove_nodes": node_ids,
+        }, "PATCH"))
 
 @app.command()
 def connect(ctx: typer.Context,
@@ -89,23 +99,3 @@ def disconnect(ctx: typer.Context,
         },
         "remove_nodes": [ dest_node_id ]
     }, "PATCH"))
-
-"""
-@app.command()
-def add_nodes(ctx: typer.Context, dag_id: str, node_ids: List[str] = typer.Argument(..., help = "List of Node IDs to add to the Dag")):
-    # dagcli nodes create title --dag_id = this
-    if not node_ids: return
-    for node_id in node_ids:
-        node = newapi(ctx.obj, f"/v1/nodes/{node_id}")
-        title =  node["node"]["node"]["title"]
-        payload = {
-            "node": {
-                "dag_id": dag_id,
-                "node": {
-                    "id": node_id,
-                    "title": title,
-                }
-            }
-        }
-        newapi(ctx.obj, f"/v1/nodes", payload, "POST")
-"""

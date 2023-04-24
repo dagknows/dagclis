@@ -68,12 +68,14 @@ def modify(ctx: typer.Context, node_id: str = typer.Argument(..., help = "ID of 
         ctx.get_help()
         ctx.fail("Atleast one option must be specified")
 
-    present(ctx, newapi(ctx.obj, f"/v1/nodes/{node_id}", {
+    if ctx.obj.output_format == "tree": ctx.obj.output_format == "yaml"
+    result = newapi(ctx.obj, f"/v1/nodes/{node_id}", {
         "node": {
             "node": params,
         },
         "update_mask": ",".join(update_mask),
-    }, "PATCH"))
+    }, "PATCH")
+    present(ctx, result["node"])
 
 @app.command()
 def delete(ctx: typer.Context, node_ids: List[str] = typer.Argument(..., help = "List of ID of the Nodes to be deleted")):
@@ -108,4 +110,6 @@ def create(ctx: typer.Context,
         payload["node"]["node"]["remediation"] = {
             "script": remediation_script.read()
         }
-    present(ctx, newapi(ctx.obj, f"/v1/nodes", payload, "POST"))
+    if ctx.obj.output_format == "tree": ctx.obj.output_format == "yaml"
+    result = newapi(ctx.obj, f"/v1/nodes", payload, "POST")
+    present(ctx, result["node"])

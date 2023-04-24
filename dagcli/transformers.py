@@ -12,7 +12,7 @@ normal_color = "#5ebbff"
 
 def node_info_transformer(dagnode):
     node = dagnode["node"]
-    edges = dagnode.get("outEdges", {}).get("edges", [])
+    edges = (dagnode.get("outEdges", {}) or {}).get("edges", []) or []
     out = {"title": f"{node['title']} ({node['id']})"}
     for edge in edges:
         if "children" not in out: out["children"] = []

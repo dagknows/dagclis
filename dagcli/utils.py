@@ -5,15 +5,20 @@ from boltons.iterutils import remap
 
 def present(ctx: typer.Context, results):
     def unnecessary_fields(p, k, v):
-        return v is not None and k != "requesting_user" and k != "proxy"
+        if v in (None, "", {}, []) or k == "requesting_user" or k == "proxy":
+            return False
+        if type(v) is str and not v.strip(): return False
+        return True
 
-    results = remap(results, unnecessary_fields)
     if ctx.obj.output_format == "json":
-        print(json.dumps(results, indent=4))
+        filtered_results = remap(results, unnecessary_fields)
+        print(json.dumps(filtered_results, indent=4))
     elif ctx.obj.output_format == "yaml":
-        print(yaml.dump(results, indent=4, sort_keys=False))
+        filtered_results = remap(results, unnecessary_fields)
+        print(yaml.dump(filtered_results, indent=4, sort_keys=False))
     elif ctx.obj.output_format == "pprint":
-        pprint(results)
+        filtered_results = remap(results, unnecessary_fields)
+        pprint(filtered_results)
     elif ctx.obj.output_format == "tree":
         # Then our results are actually a tree where each node has only 2 keys - a "title" and a "children"
         # we can render this in tree format with "|" etc
@@ -22,7 +27,8 @@ def present(ctx: typer.Context, results):
             if type(results) in (bool, str, int, float):
                 pprint(results)
             elif not ctx.obj.tree_transformer:
-                pprint(results)
+                filtered_results = remap(results, unnecessary_fields)
+                print(yaml.dump(filtered_results, indent=4, sort_keys=False))
                 # set_trace()
                 # assert False, "'tree' output format needs a tree transformer to convert results into a tree structure where each node only has either 'title' or 'children'"
             else:

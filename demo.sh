@@ -26,11 +26,11 @@ CURR_DAG_ID=`dk --format=json dags get | jq -r ".dags | .[] | select(.title == \
 CURR_SESSION_ID=`dk --format=json sessions get | jq -r ".sessions| .[] | select(.subject|test(\"^$SESSION_SUBJECT\")) | .id"`
 
 echo "Creating 10 demo nodes"
-dk nodes create --title "$NODE_PREFIX 1" --dag-id $CURR_DAG_ID
-dk nodes create --title "$NODE_PREFIX 2" --dag-id $CURR_DAG_ID
-dk nodes create --title "$NODE_PREFIX 3" --dag-id $CURR_DAG_ID
-dk nodes create --title "$NODE_PREFIX 4" --dag-id $CURR_DAG_ID
-dk nodes create --title "$NODE_PREFIX 5" --dag-id $CURR_DAG_ID
+dk nodes create --title "$NODE_PREFIX 1"
+dk nodes create --title "$NODE_PREFIX 2"
+dk nodes create --title "$NODE_PREFIX 3"
+dk nodes create --title "$NODE_PREFIX 4"
+dk nodes create --title "$NODE_PREFIX 5"
 dk nodes create --title "$NODE_PREFIX 6" --dag-id $CURR_DAG_ID
 dk nodes create --title "$NODE_PREFIX 7" --dag-id $CURR_DAG_ID
 dk nodes create --title "$NODE_PREFIX 8" --dag-id $CURR_DAG_ID
@@ -47,6 +47,9 @@ NODEID7=`dk --format=json nodes get | jq -r ".nodes | .[] | .node | select(.titl
 NODEID8=`dk --format=json nodes get | jq -r ".nodes | .[] | .node | select(.title == \"$NODE_PREFIX 8\") | .id"`
 NODEID9=`dk --format=json nodes get | jq -r ".nodes | .[] | .node | select(.title == \"$NODE_PREFIX 9\") | .id"`
 NODEID10=`dk --format=json nodes get | jq -r ".nodes | .[] | .node | select(.title == \"$NODE_PREFIX 10\") | .id"`
+
+# Bulk adding nodes to a dag
+dk dags add-nodes --dag-id $CURR_DAG_ID --nodes $NODEID1 $NODEID2 $NODEID3 $NODEID4 $NODEID5
 
 echo "Creating edges"
 dk dags connect --dag-id $CURR_DAG_ID --src-node-id $NODEID1 --dest-node-id $NODEID2
