@@ -11,6 +11,7 @@ app = typer.Typer()
 def create(ctx: typer.Context,
            title: str = typer.Option(..., help = "Title of the new Dag"),
            description: str = typer.Option("", help = "Description string for your Dag")):
+    """ Creates a new dag with the given title and description. """
     ctx.obj.tree_transformer = lambda obj: dag_info_with_exec(obj["dag"])
     present(ctx, newapi(ctx.obj, "/v1/dags", {
         "title": title,
@@ -19,11 +20,13 @@ def create(ctx: typer.Context,
 
 @app.command()
 def delete(ctx: typer.Context, dag_ids: List[str] = typer.Argument(..., help = "List of ID of the Dags to be deleted")):
+    """ Delete all dags with the given IDs. """
     for dagid in dag_ids:
         present(ctx, newapi(ctx.obj, f"/v1/dags/{dagid}", None, "DELETE"))
 
 @app.command()
 def get(ctx: typer.Context, dag_ids: List[str] = typer.Argument(None, help = "IDs of the Dags to be fetched")):
+    """ Gets one or more dags given IDs.  If no IDs are specified then a list of all dags is done.  Otherwise for each Dag ID provided its info is fetched. """
     if not dag_ids:
         ctx.obj.tree_transformer = lambda obj: dag_list_transformer(obj["dags"])
         present(ctx, newapi(ctx.obj, "/v1/dags", { }, "GET"))
@@ -36,6 +39,7 @@ def get(ctx: typer.Context, dag_ids: List[str] = typer.Argument(None, help = "ID
 
 @app.command()
 def search(ctx: typer.Context, title: str = typer.Option("", help = "Title to search for Dags by")):
+    """ Searches for dags by a given title. """
     return present(ctx, newapi(ctx.obj, "/v1/dags", {
         "title": title,
     }, "GET"))
@@ -44,6 +48,7 @@ def search(ctx: typer.Context, title: str = typer.Option("", help = "Title to se
 def modify(ctx: typer.Context, dag_id: str = typer.Argument(..., help = "ID of the dag to be updated"),
            title: str = typer.Option(None, help="New title to be set for the Dag"),
            description: str = typer.Option(None, help="New description to be set for the Dag")):
+    """ Modifies the title or description of a Dag. """
     update_mask = []
     params = {}
     if title: 
@@ -61,6 +66,7 @@ def modify(ctx: typer.Context, dag_id: str = typer.Argument(..., help = "ID of t
 def add_nodes(ctx: typer.Context, 
               dag_id: str = typer.Option(..., help = "Dag ID to remove nodes from"),
               node_ids: List[str] = typer.Argument(..., help = "List of Node IDs to add to the Dag")):
+    """ Adds nodes (by node IDs) to a Dag.  If a node already exists it is ignored. """
     # dagcli nodes create title --dag_id = this
     if node_ids:
         present(ctx, newapi(ctx.obj, f"/v1/dags/{dag_id}", {
@@ -71,6 +77,7 @@ def add_nodes(ctx: typer.Context,
 def remove_nodes(ctx: typer.Context, 
                  dag_id: str = typer.Option(..., help = "Dag ID to remove nodes from"),
                  node_ids: List[str] = typer.Argument(..., help = "List of Node IDs to remove from the Dag")):
+    """ Removes nodes from a Dag.  When a node is removed, its child nodes are also removed. """
     if node_ids:
         present(ctx, newapi(ctx.obj, f"/v1/dags/{dag_id}", {
             "remove_nodes": node_ids,
@@ -81,6 +88,7 @@ def connect(ctx: typer.Context,
             dag_id: str = typer.Option(..., help = "Dag ID to add a new edge in"),
             src_node_id: str = typer.Option(..., help = "Source node ID to start connection from"),
             dest_node_id: str = typer.Option(..., help = "Destination node ID to add connection to")):
+    """ Connect src_node_id to dest_node_id creating an edge between them in the given Dag.  If adding an edge results in cycles, the request will fail. """
     present(ctx, newapi(ctx.obj, f"/v1/nodes/{src_node_id}", {
         "node": {
             "dag_id": dag_id,
@@ -93,6 +101,7 @@ def disconnect(ctx: typer.Context,
             dag_id: str = typer.Option(..., help = "Dag ID to remove an new edge from"),
             src_node_id: str = typer.Option(..., help = "Source node ID to remove connection from"),
             dest_node_id: str = typer.Option(..., help = "Destination node ID to remove connection in")):
+    """ Removes the edge between src_node_id and dest_node_id in the given Dag """
     present(ctx, newapi(ctx.obj, f"/v1/nodes/{src_node_id}", {
         "node": {
             "dag_id": dag_id,
