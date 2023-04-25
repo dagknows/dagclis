@@ -49,7 +49,7 @@ NODEID9=`dk --format=json nodes get | jq -r ".nodes | .[] | .node | select(.titl
 NODEID10=`dk --format=json nodes get | jq -r ".nodes | .[] | .node | select(.title == \"$NODE_PREFIX 10\") | .id"`
 
 # Bulk adding nodes to a dag
-dk dags add-nodes --dag-id $CURR_DAG_ID --nodes $NODEID1 $NODEID2 $NODEID3 $NODEID4 $NODEID5
+dk dags add-nodes --dag-id $CURR_DAG_ID $NODEID1 $NODEID2 $NODEID3 $NODEID4 $NODEID5
 
 echo "Creating edges"
 dk dags connect --dag-id $CURR_DAG_ID --src-node-id $NODEID1 --dest-node-id $NODEID2
