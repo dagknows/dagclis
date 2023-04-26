@@ -69,9 +69,12 @@ def add_nodes(ctx: typer.Context,
     """ Adds nodes (by node IDs) to a Dag.  If a node already exists it is ignored. """
     # dagcli nodes create title --dag_id = this
     if node_ids:
-        present(ctx, newapi(ctx.obj, f"/v1/dags/{dag_id}", {
+        result = newapi(ctx.obj, f"/v1/dags/{dag_id}", {
             "add_nodes": node_ids,
-        }, "PATCH"))
+        }, "PATCH")
+        dag = newapi(ctx.obj, f"/v1/dags/{dag_id}")
+        ctx.obj.tree_transformer = lambda obj: dag_info_with_exec(obj["dag"])
+        present(ctx, dag)
 
 @app.command()
 def remove_nodes(ctx: typer.Context, 
@@ -79,9 +82,12 @@ def remove_nodes(ctx: typer.Context,
                  node_ids: List[str] = typer.Argument(..., help = "List of Node IDs to remove from the Dag")):
     """ Removes nodes from a Dag.  When a node is removed, its child nodes are also removed. """
     if node_ids:
-        present(ctx, newapi(ctx.obj, f"/v1/dags/{dag_id}", {
+        newapi(ctx.obj, f"/v1/dags/{dag_id}", {
             "remove_nodes": node_ids,
-        }, "PATCH"))
+        }, "PATCH")
+        dag = newapi(ctx.obj, f"/v1/dags/{dag_id}")
+        ctx.obj.tree_transformer = lambda obj: dag_info_with_exec(obj["dag"])
+        present(ctx, dag)
 
 @app.command()
 def connect(ctx: typer.Context,
@@ -95,8 +101,9 @@ def connect(ctx: typer.Context,
         },
         "add_nodes": [ dest_node_id ]
     }, "PATCH")
-    ctx.obj.tree_transformer = lambda obj: node_info_transformer(obj["node"])
-    present(ctx, result)
+    dag = newapi(ctx.obj, f"/v1/dags/{dag_id}")
+    ctx.obj.tree_transformer = lambda obj: dag_info_with_exec(obj["dag"])
+    present(ctx, dag)
 
 @app.command()
 def disconnect(ctx: typer.Context,
@@ -110,3 +117,6 @@ def disconnect(ctx: typer.Context,
         },
         "remove_nodes": [ dest_node_id ]
     }, "PATCH")
+    dag = newapi(ctx.obj, f"/v1/dags/{dag_id}")
+    ctx.obj.tree_transformer = lambda obj: dag_info_with_exec(obj["dag"])
+    present(ctx, dag)
