@@ -1,6 +1,5 @@
 import typer, yaml, json
 from pprint import pprint
-from ipdb import set_trace
 from boltons.iterutils import remap
 
 def present(ctx: typer.Context, results, notree=False):

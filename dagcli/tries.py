@@ -1,5 +1,4 @@
 from typing import List
-from ipdb import set_trace
 
 class TrieNode:
     def __init__(self, value, terminal=False, parent=None, data=None):

@@ -1,4 +1,3 @@
-from ipdb import set_trace
 import typer
 import json
 from typing import List
