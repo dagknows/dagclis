@@ -40,7 +40,8 @@ def get(ctx: typer.Context, dag_ids: List[str] = typer.Argument(None, help = "ID
 @app.command()
 def search(ctx: typer.Context, title: str = typer.Option("", help = "Title to search for Dags by")):
     """ Searches for dags by a given title. """
-    return present(ctx, newapi(ctx.obj, "/v1/dags", {
+    ctx.obj.tree_transformer = lambda obj: dag_list_transformer(obj["dags"])
+    present(ctx, newapi(ctx.obj, "/v1/dags", {
         "title": title,
     }, "GET"))
 
