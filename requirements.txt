@@ -5,7 +5,7 @@
 #    pip-compile pyproject.toml
 #
 boltons==23.0.0
-    # via dagcli (pyproject.toml)
+    # via dagknows (pyproject.toml)
 certifi==2022.12.7
     # via requests
 charset-normalizer==3.1.0
@@ -21,14 +21,14 @@ idna==3.4
 pygments==2.15.1
     # via rich
 pyyaml==6.0
-    # via dagcli (pyproject.toml)
+    # via dagknows (pyproject.toml)
 requests==2.29.0
-    # via dagcli (pyproject.toml)
+    # via dagknows (pyproject.toml)
 rich==12.6.0
     # via typer
 shellingham==1.5.0.post1
     # via typer
 typer[all]==0.7.0
-    # via dagcli (pyproject.toml)
+    # via dagknows (pyproject.toml)
 urllib3==1.26.15
     # via requests
