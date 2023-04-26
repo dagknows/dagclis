@@ -16,6 +16,7 @@ def new(ctx: typer.Context,
         params: str = typer.Option(None, help = "Json dictionary of parameters"),
         file: typer.FileText = typer.Option(None, help = "File containing a json of the parametres"),
         schedule: str = typer.Option(None, help = "Json dictionary of execution schedule")):
+    """ Create a new execution on dag. """
 
     payload = {
         "session_id": session_id,
@@ -34,6 +35,7 @@ def new(ctx: typer.Context,
 @app.command()
 def get(ctx: typer.Context,
         exec_id: str = typer.Option(..., help = "ID of execution to get")):
+    """ Get status of an execution. """
     execution = newapi(ctx.obj, f"/v1/executions/{exec_id}")["execution"]
     problem_info = defaultdict(str)
     if "results" in execution and execution["results"]:
