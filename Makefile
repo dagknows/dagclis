@@ -7,6 +7,7 @@ cleanall:
 
 build:
 	python -m build . --wheel
+	twine check dist/*
 
 test:
 	coverage run --omit './env/*' --omit '/usr/*' -m unittest tests/*.py
