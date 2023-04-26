@@ -89,12 +89,14 @@ def connect(ctx: typer.Context,
             src_node_id: str = typer.Option(..., help = "Source node ID to start connection from"),
             dest_node_id: str = typer.Option(..., help = "Destination node ID to add connection to")):
     """ Connect src_node_id to dest_node_id creating an edge between them in the given Dag.  If adding an edge results in cycles, the request will fail. """
-    present(ctx, newapi(ctx.obj, f"/v1/nodes/{src_node_id}", {
+    result = newapi(ctx.obj, f"/v1/nodes/{src_node_id}", {
         "node": {
             "dag_id": dag_id,
         },
         "add_nodes": [ dest_node_id ]
-    }, "PATCH"))
+    }, "PATCH")
+    ctx.obj.tree_transformer = lambda obj: node_info_transformer(obj["node"])
+    present(ctx, result)
 
 @app.command()
 def disconnect(ctx: typer.Context,
@@ -102,9 +104,9 @@ def disconnect(ctx: typer.Context,
             src_node_id: str = typer.Option(..., help = "Source node ID to remove connection from"),
             dest_node_id: str = typer.Option(..., help = "Destination node ID to remove connection in")):
     """ Removes the edge between src_node_id and dest_node_id in the given Dag """
-    present(ctx, newapi(ctx.obj, f"/v1/nodes/{src_node_id}", {
+    newapi(ctx.obj, f"/v1/nodes/{src_node_id}", {
         "node": {
             "dag_id": dag_id,
         },
         "remove_nodes": [ dest_node_id ]
-    }, "PATCH"))
+    }, "PATCH")

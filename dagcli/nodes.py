@@ -9,6 +9,7 @@ app = typer.Typer()
 def get(ctx: typer.Context,
         dag_id: str = typer.Option(None, help="Dag ID in the context of which to get the Node - only for single gets"),
         node_ids: List[str] = typer.Argument(None, help = "IDs of the Nodes to be fetched")):
+    """ Get one or more nodes by ID. If the dag_id param is passed then child nodes are also returned in the context of the Dag. """
     payload = {}
     if dag_id:
         payload["dag_id"] = dag_id
@@ -25,6 +26,7 @@ def get(ctx: typer.Context,
 
 @app.command()
 def search(ctx: typer.Context, title: str = typer.Option("", help = "Title to search for Nodes by")):
+    """ Search for nodes by title. """
     return present(ctx, newapi(ctx.obj, "/v1/nodes", {
         "title": title,
     }, "GET"))
@@ -38,6 +40,7 @@ def modify(ctx: typer.Context, node_id: str = typer.Argument(..., help = "ID of 
            detection_script: typer.FileText = typer.Option(None, help="Path of the file containing the detection script"),
            remediation: str = typer.Option(None, help="Steps with the commands for remediation"),
            remediation_script: typer.FileText = typer.Option(None, help="Path of the file containing the remediation script")):
+    """ Modify a node's parameters."""
     update_mask = set()
     params = {}
     if title: 
@@ -79,6 +82,7 @@ def modify(ctx: typer.Context, node_id: str = typer.Argument(..., help = "ID of 
 
 @app.command()
 def delete(ctx: typer.Context, node_ids: List[str] = typer.Argument(..., help = "List of ID of the Nodes to be deleted")):
+    """ Delete one or more nodes by ID. """
     for nodeid in node_ids:
         present(ctx, newapi(ctx.obj, f"/v1/nodes/{nodeid}", None, "DELETE"))
 
@@ -90,6 +94,7 @@ def create(ctx: typer.Context,
         input_params: str = typer.Option("", help = 'Comma separated list of names of all parameters to be passed to detection script, eg "ip, host, username"'),
         detection_script: typer.FileText = typer.Option(None, help = "File containing the detection script for this Node"),
         remediation_script: typer.FileText = typer.Option(None, help = "File containing the remediation script for this Node")):
+    """ Create a Node.  The node can be within a dag or independent (and added to dags later). """
 
     inparams = [p.strip() for p in input_params.split(",") if p.strip()]
     payload = {
