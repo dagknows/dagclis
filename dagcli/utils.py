@@ -3,23 +3,26 @@ from pprint import pprint
 from ipdb import set_trace
 from boltons.iterutils import remap
 
-def present(ctx: typer.Context, results):
+def present(ctx: typer.Context, results, notree=False):
     def unnecessary_fields(p, k, v):
         if v in (None, "", {}, []) or k == "requesting_user" or k == "proxy":
             return False
         if type(v) is str and not v.strip(): return False
+        if k in ["createdAt", "updatedAt"]: return False
         return True
 
-    if ctx.obj.output_format == "json":
-        filtered_results = remap(results, unnecessary_fields)
+    output_format = ctx.obj.output_format
+    if output_format == "tree" and notree:
+        output_format = "yaml"
+
+    filtered_results = remap(results, unnecessary_fields)
+    if output_format == "json":
         print(json.dumps(filtered_results, indent=4))
-    elif ctx.obj.output_format == "yaml":
-        filtered_results = remap(results, unnecessary_fields)
+    elif output_format == "yaml":
         print(yaml.dump(filtered_results, indent=4, sort_keys=False))
-    elif ctx.obj.output_format == "pprint":
-        filtered_results = remap(results, unnecessary_fields)
+    elif output_format == "pprint":
         pprint(filtered_results)
-    elif ctx.obj.output_format == "tree":
+    elif output_format == "tree":
         # Then our results are actually a tree where each node has only 2 keys - a "title" and a "children"
         # we can render this in tree format with "|" etc
         if results:
@@ -27,7 +30,6 @@ def present(ctx: typer.Context, results):
             if type(results) in (bool, str, int, float):
                 pprint(results)
             elif not ctx.obj.tree_transformer:
-                filtered_results = remap(results, unnecessary_fields)
                 print(yaml.dump(filtered_results, indent=4, sort_keys=False))
                 # set_trace()
                 # assert False, "'tree' output format needs a tree transformer to convert results into a tree structure where each node only has either 'title' or 'children'"
@@ -37,7 +39,7 @@ def present(ctx: typer.Context, results):
                 print("\n".join(lines))
     else:
         # Apply a result type specific transformer here
-        print("Invalid output format: ", ctx.obj.output_format)
+        print("Invalid output format: ", output_format)
 
 def make_tree(prefix, num_levels, num_children_per_level):
     root = {"title": prefix, "children": []}
