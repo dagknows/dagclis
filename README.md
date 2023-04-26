@@ -1,23 +1,37 @@
-The CLI for dagknows api
+# DagKnows Tools
 
-# Setup
+Welcome to the CLI tools for DagKnows.  With this you can manage all your dags, nodes, executions and sessions without ever leaving the comfort of your terminal.
 
-1. Create env:
+## Getting Started
 
-```
-virtualenv env
-source env/bin/activate
-```
-
-2. Install Requirements
+Install the cli with:
 
 ```
-pip install -r requirements.txt
+pip install dagknows
 ```
 
-3. Build and Install "us"
+## Setup your account
+
+DagKnows uses the auth token associated with your organization and account.  You can either use an existing token or login and create a new one.
+
+To use an existing token simply do:
 
 ```
-make
-pip install -e .
+dk init --access-token <EXISTING_ACCESS_TOKEN>
+```
+
+You can also login to get a fresh one:
+
+```
+dk login ORG
+```
+
+Here you will be prompted for your org's username and password.
+
+## Get going
+
+For a full list of commands and help descriptions do:
+
+```
+dk --help
 ```

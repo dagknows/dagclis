@@ -11,3 +11,7 @@ build:
 test:
 	coverage run --omit './env/*' --omit '/usr/*' -m unittest tests/*.py
 	coverage report
+
+prepublish:
+	pip-compile pyproject.toml
+

@@ -1,4 +1,6 @@
 ipdb
 build
+bumpver
 ipython
 coverage
+pip-tools
