@@ -50,7 +50,7 @@ def modify(ctx: typer.Context, node_id: str = typer.Argument(..., help = "ID of 
         update_mask.add("detection")
         params["description"] = description
     if input_params:
-        update_mask.add("input_params")
+        update_mask.add("inputparams")
         params["input_params"] = {k:k for k in input_params.split(",")}
 
     if detection:
