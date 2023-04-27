@@ -45,7 +45,7 @@ def rich_dag_info_with_exec(dag, problem_info=None):
         nodeid = node["id"]
         title = f"[bold]{node['title']}[/bold]  -  ({nodeid})"
         if problem_info[nodeid] == "yes":
-            title = f"[{problem_color}][Problem] - {title}"
+            title = f"[{problem_color}][Problem]  -  {title}"
         elif problem_info[nodeid] == "no":
             title = f"[{not_problem_color}]{title}"
         else:
@@ -61,7 +61,7 @@ def rich_dag_info_with_exec(dag, problem_info=None):
             destnode = nodesbyid[destnodeid]
             nodesbyid[srcnode].add(destnode)
 
-    dag_title = f"[bold]{dag['title']}[/bold] ({dag['id']})"
+    dag_title = f"[bold]{dag['title']}[/bold]  -  ({dag['id']})"
     if any([v == "yes" for v in problem_info.values()]):
         dag_title = f"[{problem_color}]{dag_title}"
     else:

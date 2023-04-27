@@ -167,11 +167,14 @@ def newapi(dkconfig: "DagKnowsConfig", path, payload=None, method = ""):
     else:
         resp = methfunc(url, headers=headers)
     # print(json.dumps(resp.json(), indent=4))
-    result = resp.json()
     if resp.status_code != 200:
+        print("Request Failed: ", resp.content)
+        """
         if "message" in result:
             print(result["message"])
         else:
             print("Request failed: ", result)
+        """
         sys.exit(1)
+    result = resp.json()
     return result
