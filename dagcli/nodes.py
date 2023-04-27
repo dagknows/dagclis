@@ -36,6 +36,7 @@ def search(ctx: typer.Context, title: str = typer.Option("", help = "Title to se
 def modify(ctx: typer.Context, node_id: str = typer.Argument(..., help = "ID of the Dag to be updated"),
            title: str = typer.Option(None, help="New title to be set for the Dag"),
            description: str = typer.Option(None, help="New description to be set for the Dag"),
+           comment: str = typer.Option(None, help="Comment describing the modification"),
            input_params: str = typer.Option("", help="Comma seperated list of input params for this node"),
            detection: str = typer.Option(None, help="Steps with the commands for detection"),
            detection_script: typer.FileText = typer.Option(None, help="Path of the file containing the detection script"),
@@ -48,8 +49,11 @@ def modify(ctx: typer.Context, node_id: str = typer.Argument(..., help = "ID of 
         update_mask.add("title")
         params["title"] = title
     if description: 
-        update_mask.add("detection")
+        update_mask.add("description")
         params["description"] = description
+    if comment: 
+        update_mask.add("comment")
+        params["comments"] = [{"text": comment}]
     if input_params:
         update_mask.add("inputparams")
         params["input_params"] = {k:k for k in input_params.split(",")}
