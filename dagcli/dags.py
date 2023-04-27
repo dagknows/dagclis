@@ -66,12 +66,14 @@ def modify(ctx: typer.Context, dag_id: str = typer.Argument(..., help = "ID of t
 @app.command()
 def add_nodes(ctx: typer.Context, 
               dag_id: str = typer.Option(..., help = "Dag ID to remove nodes from"),
-              node_ids: List[str] = typer.Argument(..., help = "List of Node IDs to add to the Dag")):
+              node_ids: List[str] = typer.Option(..., help = "First NodeID to add to the Dag"),
+              nodeids: List[str] = typer.Argument(..., help = "List of more Node IDs to add to the Dag")):
     """ Adds nodes (by node IDs) to a Dag.  If a node already exists it is ignored. """
     # dagcli nodes create title --dag_id = this
-    if node_ids:
+    all_node_ids = node_ids + nodeids
+    if all_node_ids:
         result = newapi(ctx.obj, f"/v1/dags/{dag_id}", {
-            "add_nodes": node_ids,
+            "add_nodes": all_node_ids,
         }, "PATCH")
         dag = newapi(ctx.obj, f"/v1/dags/{dag_id}")
         ctx.obj.tree_transformer = lambda obj: dag_info_with_exec(obj["dag"])
@@ -80,11 +82,13 @@ def add_nodes(ctx: typer.Context,
 @app.command()
 def remove_nodes(ctx: typer.Context, 
                  dag_id: str = typer.Option(..., help = "Dag ID to remove nodes from"),
-                 node_ids: List[str] = typer.Argument(..., help = "List of Node IDs to remove from the Dag")):
+                 node_ids: List[str] = typer.Option(..., help = "First NodeID to remove from the Dag"),
+                 nodeids: List[str] = typer.Argument(..., help = "List of more Node IDs to remove from the Dag")):
     """ Removes nodes from a Dag.  When a node is removed, its child nodes are also removed. """
-    if node_ids:
+    all_node_ids = node_ids + nodeids
+    if all_node_ids:
         newapi(ctx.obj, f"/v1/dags/{dag_id}", {
-            "remove_nodes": node_ids,
+            "remove_nodes": all_node_ids,
         }, "PATCH")
         dag = newapi(ctx.obj, f"/v1/dags/{dag_id}")
         ctx.obj.tree_transformer = lambda obj: dag_info_with_exec(obj["dag"])
