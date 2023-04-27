@@ -22,7 +22,8 @@ def get(ctx: typer.Context,
     else:
         ctx.obj.tree_transformer = lambda obj: node_list_transformer(obj["nodes"].values())
         payload["ids"] = node_ids
-        present(ctx, newapi(ctx.obj, "/v1/nodes:batchGet", payload, "GET"))
+        results = newapi(ctx.obj, "/v1/nodes:batchGet", payload, "GET")
+        present(ctx, results)
 
 @app.command()
 def search(ctx: typer.Context, title: str = typer.Option("", help = "Title to search for Nodes by")):
