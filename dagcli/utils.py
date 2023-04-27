@@ -1,6 +1,8 @@
 import typer, yaml, json
 from pprint import pprint
 from boltons.iterutils import remap
+from rich import print as rprint
+from rich.tree import Tree
 
 def present(ctx: typer.Context, results, notree=False):
     def unnecessary_fields(p, k, v):
@@ -34,8 +36,11 @@ def present(ctx: typer.Context, results, notree=False):
                 # assert False, "'tree' output format needs a tree transformer to convert results into a tree structure where each node only has either 'title' or 'children'"
             else:
                 tree = ctx.obj.tree_transformer(results)
-                lines = render_tree(tree)
-                print("\n".join(lines))
+                if type(tree) is Tree:
+                    rprint(tree)
+                else:
+                    lines = render_tree(tree)
+                    print("\n".join(lines))
     else:
         # Apply a result type specific transformer here
         print("Invalid output format: ", output_format)
