@@ -5,7 +5,7 @@ import json, os, sys
 
 app = typer.Typer(pretty_exceptions_show_locals=False)
 
-DISABLE_LOGIN = True
+DISABLE_LOGIN = False
 
 # This callback applies to *all* commands
 @app.callback()
