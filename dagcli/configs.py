@@ -6,11 +6,12 @@ import os
 from dagcli.client import SessionClient
 
 class DagKnowsConfig:
-    def __init__(self, homedir, **data):
+    def __init__(self, homedir, curr_profile="default", **data):
         self.homedir = homedir
         self.data = data
         self._curr_profile_data = {}
         self._client = None
+        self._curr_profile = curr_profile
         self.tree_transformer = None
         self.load()
 
@@ -85,14 +86,14 @@ class DagKnowsConfig:
 
     @property
     def curr_profile(self):
-        return self.data["profile"]
+        return self._curr_profile
 
     @curr_profile.setter
     def curr_profile(self, newprofile):
         if newprofile != self.curr_profile:
             self.save()
             self._client = None
-            self.data["profile"] = newprofile
+            self._curr_profile = newprofile
             self.load()
 
     @property
