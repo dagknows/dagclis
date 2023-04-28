@@ -15,15 +15,15 @@ def get(ctx: typer.Context,
         payload["dag_id"] = dag_id
     if not node_ids:
         ctx.obj.tree_transformer = lambda obj: node_list_transformer(obj["nodes"])
-        present(ctx, newapi(ctx.obj, "/v1/nodes", payload, "GET"))
+        results = newapi(ctx.obj, "/v1/nodes", payload, "GET")
     elif len(node_ids) == 1:
         ctx.obj.tree_transformer = lambda obj: node_info_transformer(obj["node"])
-        present(ctx, newapi(ctx.obj, f"/v1/nodes/{node_ids[0]}", payload, "GET"))
+        results = newapi(ctx.obj, f"/v1/nodes/{node_ids[0]}", payload, "GET")
     else:
         ctx.obj.tree_transformer = lambda obj: node_list_transformer(obj["nodes"].values())
         payload["ids"] = node_ids
         results = newapi(ctx.obj, "/v1/nodes:batchGet", payload, "GET")
-        present(ctx, results)
+    present(ctx, results)
 
 @app.command()
 def search(ctx: typer.Context, title: str = typer.Option("", help = "Title to search for Nodes by")):

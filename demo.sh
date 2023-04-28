@@ -1,20 +1,20 @@
 
-SESSION_SUBJECT="Session4Demo"
-DAG_TITLE="Dag4Demo"
+SESSION_SUBJECT="Session4DemoSri"
+DAG_TITLE="Dag4DemoSri"
 NODE_PREFIX="$DAG_TITLE Node"
 
-for sessionid in `dk --format=json sessions get | jq -r ".sessions| .[] | select(.subject|test(\"^$SESSION_SUBJECT\")) | .id"`; do
+for sessionid in `dk --format=json sessions get | jq -r ".sessions| .[] | select(.subject != null) | select(.subject|test(\"^$SESSION_SUBJECT\")) | .id"`; do
   echo "Deleting Demo Session $sessionid"
   dk sessions delete $sessionid
 done
 
-for dagid in `dk --format=json dags get | jq -r ".dags| .[] | select(.title|test(\"^$DAG_TITLE\")) | .id"`; do
+for dagid in `dk --format=json dags get | jq -r ".dags| .[] | select(.title != null) | select(.title|test(\"^$DAG_TITLE\")) | .id"`; do
   echo "Deleting Demo Dag $dagid"
   dk dags delete $dagid
 done
 
 # Also remove test nodes
-for nodeid in `dk --format=json  nodes get | jq -r ".nodes | .[] | .node | select(.title|test(\"^$NODE_PREFIX\")) | .id"`; do
+for nodeid in `dk --format=json  nodes get | jq -r ".nodes | .[] | .node | select(.title != null) | select(.title|test(\"^$NODE_PREFIX\")) | .id"`; do
   echo "Deleting Demo Node $nodeid"
   dk nodes delete $nodeid
 done
@@ -22,8 +22,8 @@ done
 dk sessions create --subject "$SESSION_SUBJECT"
 
 dk dags create --title "$DAG_TITLE"
-CURR_DAG_ID=`dk --format=json dags get | jq -r ".dags | .[] | select(.title == \"$DAG_TITLE\") | .id"`
-CURR_SESSION_ID=`dk --format=json sessions get | jq -r ".sessions| .[] | select(.subject|test(\"^$SESSION_SUBJECT\")) | .id"`
+CURR_DAG_ID=`dk --format=json dags get | jq -r ".dags | .[] | select(.title != null) | select(.title == \"$DAG_TITLE\") | .id"`
+CURR_SESSION_ID=`dk --format=json sessions get | jq -r ".sessions| .[] | select(.subject != null) | select(.subject|test(\"^$SESSION_SUBJECT\")) | .id"`
 
 echo "Creating 10 demo nodes"
 dk nodes create --title "$NODE_PREFIX 1"
@@ -65,11 +65,11 @@ dk dags connect --dag-id $CURR_DAG_ID --src-node-id $NODEID7 --dest-node-id $NOD
 dk dags connect --dag-id $CURR_DAG_ID --src-node-id $NODEID8 --dest-node-id $NODEID10
 dk dags connect --dag-id $CURR_DAG_ID --src-node-id $NODEID9 --dest-node-id $NODEID10
 
-echo echo Executing \"$NODEID1 - $NODE_PREFIX 1\" > /tmp/node1
-echo echo Executing \"$NODEID3 - $NODE_PREFIX 3\" > /tmp/node3
-echo echo Executing \"$NODEID5 - $NODE_PREFIX 5\" > /tmp/node5
-echo echo Executing \"$NODEID7 - $NODE_PREFIX 7\" > /tmp/node7
-echo echo Executing \"$NODEID9 - $NODE_PREFIX 9\" > /tmp/node9
+echo name1 = \"$NODEID1 - $NODE_PREFIX 1\" ; print(name1) > /tmp/node1
+echo name3 = \"$NODEID1 - $NODE_PREFIX 1\" ; print(name3) > /tmp/node3
+echo name5 = \"$NODEID1 - $NODE_PREFIX 1\" ; print(name5) > /tmp/node5
+echo name7 = \"$NODEID1 - $NODE_PREFIX 1\" ; print(name7) > /tmp/node7
+echo name9 = \"$NODEID1 - $NODE_PREFIX 1\" ; print(name9) > /tmp/node9
 
 dk nodes modify $NODEID1 --detection-script /tmp/node1
 dk nodes modify $NODEID3 --detection-script /tmp/node3

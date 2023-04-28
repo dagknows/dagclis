@@ -33,7 +33,7 @@ def new(ctx: typer.Context,
 
 @app.command()
 def get(ctx: typer.Context,
-        exec_id: str = typer.Option(..., help = "ID of execution to get")):
+        exec_id: str = typer.Argument(None, help = "ID of execution to get")):
     """ Get status of an execution. """
     execution = newapi(ctx.obj, f"/v1/executions/{exec_id}")["execution"]
     problem_info = defaultdict(str)
