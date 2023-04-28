@@ -1,8 +1,11 @@
 import typer
 from dagcli.configs import DagKnowsConfig
+from dagcli.client import newapi
 import json, os, sys
 
 app = typer.Typer(pretty_exceptions_show_locals=False)
+
+DISABLE_LOGIN = True
 
 # This callback applies to *all* commands
 @app.callback()
@@ -49,6 +52,8 @@ def ensure_access_token(ctx: typer.Context):
 def init(ctx: typer.Context,
          profile: str = typer.Option("default", help = "Name of the profie to initialize"),
          api_host: str = typer.Option(None, help='API Host to use for this profile'),
+         username: str = typer.Option(None, help="Username/Email to login with if access_token not to be entered manually"),
+         password: str = typer.Option(None, help="Password to login with if access_token not to be entered manually"),
          access_token: str = typer.Option(None, help='Access token to initialize CLI with for this profile')):
     """ Initializes DagKnows config and state folders. """
     # Initialize the home directory
@@ -63,7 +68,28 @@ def init(ctx: typer.Context,
         profile_data["api_host"] = api_host
 
     if not access_token:
-        access_token = typer.prompt("Enter an access token: ")
+        from rich.prompt import Prompt, Confirm
+        login = False
+        if not DISABLE_LOGIN:
+            login = username or password
+            if not login:
+                login = Confirm.ask("Would you like to login to get your access token?", default=True)
+        if login:
+            org = Prompt.ask("Please enter your org: ", default="dagknows")
+            if not username:
+                username = Prompt.ask("Please enter your username: ")
+            if not password:
+                password = Prompt.ask("Please enter your password: ")
+            # make call and get access_token
+            payload = {"org": org,
+                       "username": username,
+                       "credentials": { "password": password }
+                       }
+            resp = newapi(ctx.obj, "/v1/users/login", payload, "POST")
+            all_tokens = sorted([(v["expiry"], v,k) for k,v in resp["data"].items() if not v.get("revoked", False)])
+            access_token = all_tokens[-1][2]
+        else:
+            access_token = typer.prompt("Enter an access token: ")
 
     profile_data["access_tokens"] = [
         {"value": access_token}
@@ -87,20 +113,6 @@ def configs(ctx: typer.Context, as_json: bool=typer.Option(False, help="Control 
 
 def get_token_for_label(homedir: str, label: str) -> str:
     pass
-
-@app.command()
-def login(ctx: typer.Context, org: str = typer.Option("dagknows", help="Organization to login to"),
-          install_token: bool = typer.Option(True, help="Automatically install an access token for use"),
-          username: str = typer.Option(..., help="Username/Email to login with", prompt=True),
-          password: str = typer.Option(..., help="Username/Email to login with", prompt=True, hide_input=True)):
-    """ Logs into DagKnows and installs a new access token. """
-    sesscli = ctx.obj.client
-    sesscli.reset()
-    sesscli.login_with_email(username, password, org)
-    if install_token:
-        # TODO
-        pass
-    typer.echo("Congratulations.  You can now create and revoke tokens")
 
 @app.command()
 def logout(ctx: typer.Context):
