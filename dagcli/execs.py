@@ -37,6 +37,7 @@ def get(ctx: typer.Context,
     """ Get status of an execution. """
     execution = newapi(ctx.obj, f"/v1/executions/{exec_id}")["execution"]
     problem_info = defaultdict(str)
+    if not execution: return
     if "results" in execution and execution["results"]:
         last_info = execution["results"][-1]["info"]
         for node in last_info["confirm_problem"]:
