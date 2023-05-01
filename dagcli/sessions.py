@@ -65,29 +65,42 @@ def remove_user(ctx: typer.Context, session_id: str, user_ids: List[str] = typer
     }, "PATCH"))
 
 @app.command()
+def join(ctx: typer.Context,
+         session_id: str = typer.Argument(..., help="Session ID to join and start recording.")):
+    """ Join's an existing sessions.  Any previous sessions are flushed out and exported. """
+    join_session(ctx, session_id)
+    pass
+
+@app.command()
 def record(ctx: typer.Context,
-           session_id: str = typer.Option(None, help="Session ID to use"),
-           subject: str = typer.Option(None, help="Create a new session with this subject")):
-    """ Start recording a session for later export. """
-    if not session_id:
-        if not subject:
-            confirm = typer.confirm("You have not passed a session_id.  Would you like to create a new session instead?", abort=True)
-            if confirm:
-                subject = typer.prompt("Enter the subject of your session")
+           subject: str = typer.Option("", help="Create a new session with this subject and start recording")):
+    """ Create a new session with the given subject and start recording and exporting commands to it. Any previous sessions are flushed out and exported."""
+    if not subject:
+        subject = typer.prompt("Enter the subject of the new session to record")
+        print("Subject: ", subject)
+        if not subject.strip():
+            ctx.fail("Please enter a valid subject.")
 
-            print("Subject: ", subject)
-            if not subject.strip():
-                ctx.fail("Please enter a valid subject.")
+        # Todo - create
+        session = newapi(ctx.obj, "/v1/sessions", { "subject": subject, }, "POST")
+        session_id = session["session"]["id"]
+    join_session(ctx, session_id)
 
-            # Todo - create
-            session = newapi(ctx.obj, "/v1/sessions", { "subject": subject, }, "POST")
-            session_id = session["session"]["id"]
 
+@app.command()
+def flush(ctx: typer.Context,
+          session_id: str = typer.Argument(..., help="Session ID to flush and export.")):
+    """ Flush all accumulated commands to the server. """
+    pass
+
+def join_session(ctx: typer.Context, session_id: str):
     ctx.obj.getpath(f"sessions/{session_id}", is_dir=True, ensure=True)
-    ctx.obj.getpath("enable_recording", ensure=True)
-    with open(ctx.obj.getpath("current_session"), "w") as currsessfile:
+    # ctx.obj.getpath("enable_recording", ensure=True)
+    with open(ctx.obj.getpath("current_session", profile_relative=False), "w") as currsessfile:
         currsessfile.write(session_id)
-    typer.echo("Congratulations.  You are now recording")
+    with open(ctx.obj.getpath("current_profile", profile_relative=False), "w") as currproffile:
+        currproffile.write(ctx.curr_profile)
+    typer.echo(f"Congratulations.  You are now recording sessions {session_id}")
 
 @app.command()
 def stop(ctx: typer.Context):

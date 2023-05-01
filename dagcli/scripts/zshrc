@@ -1,0 +1,77 @@
+
+dagknows_start_session_script() {
+   PID=`echo $$`
+   MYPPID=`ps -o ppid= -p ${PID} | xargs`
+   MYPCMD=`ps -o comm= -p ${MYPPID} | xargs`
+   SESSION=`dagknows_curr_session`
+   PROFILE=`dagknows_curr_profile`
+   if [ "$SESSION" = "" -o "$PROFILE" = "" ]; then
+     return
+   fi
+   BLOBFILE="~/.dagknows/$PROFILE/sessions/$SESSION/cliblob"
+   CMDFILE="~/.dagknows/$PROFILE/sessions/$SESSION/commands"
+   if [ "$MYPCMD" != "script" ]; then
+      echo "DagKnows Shell Recording On: $SESSION"
+      script -a -q -F $BLOBFILE
+   else
+   fi
+}
+
+dagknows_prexec() {
+   PID=`echo $$`
+   MYPPID=`ps -o ppid= -p ${PID} | xargs`
+   MYPCMD=`ps -o comm= -p ${MYPPID} | xargs`
+   SESSION=`dagknows_curr_session`
+   PROFILE=`dagknows_curr_profile`
+   if [ "$SESSION" = "" -o "$PROFILE" = "" ]; then
+     return
+   fi
+
+   BLOBFILE="~/.dagknows/$PROFILE/sessions/$SESSION/cliblob"
+   CMDFILE="~/.dagknows/$PROFILE/sessions/$SESSION/commands"
+   if [ "$MYPCMD" = "script" ]; then
+      if [ ! -f "$BLOBFILE" ]; then
+        echo "WARNING - Please start a new shell, script output file ($BLOBFILE) missing"
+        if [ -f "$CMDFILE" ]; then
+          mv $CMDFILE "${CMDFILE}.bak"
+        fi
+      else
+        echo "PROMPT: " "'${(%%)PS1}'" " CMD: " $3  >> $CMDFILE
+      fi
+   fi
+}
+
+dagknows_curr_profile() {
+  if [ -f "~/.dagknows/current_profile" ]; then
+    cat "~/.dagknows/current_profile"
+  else
+    echo ""
+  fi
+}
+
+dagknows_curr_session() {
+  if [ -f "~/.dagknows/current_session" ]; then
+    cat "~/.dagknows/current_session"
+  else
+    echo ""
+  fi
+}
+
+dagknows_precmd() {
+  SESSION=`dagknows_curr_session`
+  PROFILE=`dagknows_curr_profile`
+  if [ "$SESSION" != "" -a "$PROFILE" != "" ]; then
+    dk --profile=$PROFILE sessions flush $SESSION
+  fi
+}
+
+preexec() {
+  dagknows_preexec
+}
+
+preexec() {
+  dagknows_precmd
+}
+
+dagknows_start_session_script
+

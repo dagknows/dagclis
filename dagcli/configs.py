@@ -36,9 +36,12 @@ class DagKnowsConfig:
             return self.profile_data.get(datakey, None)
         return out
 
-    def getpath(self, path, is_dir=False, ensure=False):
+    def getpath(self, path, is_dir=False, ensure=False, profile_relative=True):
         """ Gets name of a file within the home dir. """
-        out = os.path.expanduser(os.path.join(self.homedir, self.curr_profile, path))
+        if profile_relative:
+            out = os.path.expanduser(os.path.join(self.homedir, self.curr_profile, path))
+        else:
+            out = os.path.expanduser(os.path.join(self.homedir, path))
         if ensure:
             if is_dir:
                 if not os.path.isdir(out):
