@@ -173,8 +173,30 @@ def stop(ctx: typer.Context):
     enable_file = ctx.obj.getpath("enable_recording")
     if os.path.isfile(enable_file):
         os.remove(enable_file)
-    typer.echo("Congratulations.  You have stopped recording")
     sessfile = ctx.obj.getpath("current_session", profile_relative=False)
     proffile = ctx.obj.getpath("current_profile", profile_relative=False)
-    if os.path.isfile(sessfile): os.remove(sessfile)
-    if os.path.isfile(proffile): os.remove(proffile)
+    session_id = profile = ""
+    if os.path.isfile(sessfile):
+        session_id = open(sessfile).read().strip()
+    if os.path.isfile(proffile):
+        profile = open(proffile).read().strip()
+    if session_id and profile:
+        # Use the profile in the stop command instead of what ever the user provided
+        ctx.obj.curr_profile = profile
+        pidsfile = ctx.obj.getpath(f"sessions/{session_id}/PIDS")
+        pids = [int(p.strip()) for p in open(pidsfile).read().split("\n") if p.strip()]
+        blobfile = ctx.obj.getpath(f"sessions/{session_id}/cliblob")
+        import psutil
+        for pid in pids:
+            # see if the pid matches a script command with the typescript file
+            # pointing to sessions/cliblob, if so then delete it
+            try:
+                proc = psutil.Process(pid)
+                if proc.name() == "script" and proc.cmdline()[-1] == blobfile:
+                    print("Script session terminating: ", pid)
+            except psutil.NoSuchProcess:
+                print("Script session already finished: ", pid)
+        os.remove(sessfile)
+        os.remove(proffile)
+        os.remove(pidsfile)
+        typer.echo("Congratulations.  You have stopped recording")

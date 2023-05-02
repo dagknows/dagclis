@@ -11,6 +11,16 @@ dagknows_curr_session() {
   fi
 }
 
+dagknows_pids_file() {
+   SESSION=`dagknows_curr_session`
+   PROFILE=`dagknows_curr_profile`
+   PIDSFILE="$HOME/.dagknows/$PROFILE/sessions/$SESSION/PIDS"
+   if [ ! -f $PIDSFILE ]; then
+     touch $PIDSFILE
+   fi
+   echo $PIDSFILE
+}
+
 dagknows_cli_blobfile() {
    SESSION=`dagknows_curr_session`
    PROFILE=`dagknows_curr_profile`
@@ -39,7 +49,11 @@ dagknows_start_session_script() {
    BLOBFILE=`dagknows_cli_blobfile`
    CMDFILE=`dagknows_cmd_file`
    if [ "$MYPCMD" != "script" ]; then
-      echo "DagKnows Shell Recording On: $SESSION to $BLOBFILE"
+      echo "###############################################################"
+      echo 
+      echo "        DagKnows Shell Recording On: $SESSION to $BLOBFILE"     
+      echo 
+      echo "###############################################################"
       touch $BLOBFILE
       script -a -q -F $BLOBFILE
    else
@@ -56,6 +70,7 @@ dagknows_preexec() {
      return
    fi
 
+   PIDSFILE=`dagknows_pids_file`
    BLOBFILE=`dagknows_cli_blobfile`
    CMDFILE=`dagknows_cmd_file`
    if [ "$MYPCMD" = "script" ]; then
@@ -65,6 +80,7 @@ dagknows_preexec() {
           mv $CMDFILE "${CMDFILE}.bak"
         fi
       else
+        grep -qxF "$MYPPID" $PIDSFILE || echo "$MYPPID" >> $PIDSFILE
         echo "PROMPT: " "'${(%%)PS1}'" " CMD: " $3  >> $CMDFILE
       fi
    fi
