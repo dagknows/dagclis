@@ -158,7 +158,6 @@ def start_shell(ctx: typer.Context, session_id: str):
     ctx.obj.getpath(f"sessions/{session_id}", is_dir=True, ensure=True)
 
     if script_already_started(ctx, session_id):
-        import ipdb ; ipdb.set_trace()
         print("You are already joint in this session.")
         return
 
@@ -220,12 +219,9 @@ def stop(ctx: typer.Context):
                 else:
                     parent = proc.parent()
                     proc.kill()
-                    # import ipdb ; ipdb.set_trace()
-                    # parent.kill()
 
         os.remove(sessfile)
         os.remove(proffile)
         assert len(kill_later) <= 1, "Cannot be part of too many parent processes??"
         if kill_later:
-            # import ipdb ; ipdb.set_trace()
             kill_later[0].kill()
