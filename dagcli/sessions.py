@@ -144,21 +144,32 @@ def flush(ctx: typer.Context,
     open(cmdfile, "a").truncate(0)
 
 def script_already_started(ctx, session_id):
+    sessionspath = ctx.obj.getpath(f"sessions", is_dir=True, ensure=True)
     ctx.obj.getpath(f"sessions/{session_id}", is_dir=True, ensure=True)
     blobfile = ctx.obj.getpath(f"sessions/{session_id}/cliblob")
     currpid = os.getpid()
     currproc = psutil.Process(currpid)
     while currproc:
         if currproc.name() == "script" and currproc.cmdline()[-1] == blobfile:
+            print("You have already joined this session.")
             return True
         currproc = currproc.parent()
+
+    # see if *any* session has been started for another sesion_id (except this)
+    for proc in psutil.process_iter():
+        if proc.name() == "script":
+            cmdline = proc.cmdline()[-1]
+            if cmdline != blobfile and cmdline.startswith(sessionspath):
+                parent, basename = os.path.split(cmdline)
+                _, another_session_id = os.path.split(parent)
+                print(f"Another session is currently joined: {another_session_id}")
+                return True
     return False
 
 def start_shell(ctx: typer.Context, session_id: str):
     ctx.obj.getpath(f"sessions/{session_id}", is_dir=True, ensure=True)
 
     if script_already_started(ctx, session_id):
-        print("You are already joint in this session.")
         return
 
     # ctx.obj.getpath("enable_recording", ensure=True)
