@@ -12,7 +12,6 @@ def copy_shellconfigs(ctx: typer.Context):
     with open(dkzshrc, "w") as zshrc:
         from pkg_resources import resource_string
         zshrcdata = resource_string("dagcli", "scripts/zshrc")
-        import ipdb ; ipdb.set_trace()
         zshrc.write(zshrcdata.decode())
     from rich.prompt import Prompt, Confirm
     if Confirm.ask("Would you like to source dagknows shell confings in your .zshrc?", default=True):

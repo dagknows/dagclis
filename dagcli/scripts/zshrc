@@ -1,4 +1,32 @@
 
+dagknows_curr_profile() {
+  if [ -f ~/.dagknows/current_profile ]; then
+    cat ~/.dagknows/current_profile
+  fi
+}
+
+dagknows_curr_session() {
+  if [ -f ~/.dagknows/current_session ]; then
+    cat ~/.dagknows/current_session
+  fi
+}
+
+dagknows_cli_blobfile() {
+   SESSION=`dagknows_curr_session`
+   PROFILE=`dagknows_curr_profile`
+   BLOBFILE="$HOME/.dagknows/$PROFILE/sessions/$SESSION/cliblob"
+   CMDFILE="$HOME/.dagknows/$PROFILE/sessions/$SESSION/commands"
+   echo $BLOBFILE
+}
+
+dagknows_cmd_file() {
+   SESSION=`dagknows_curr_session`
+   PROFILE=`dagknows_curr_profile`
+   BLOBFILE="$HOME/.dagknows/$PROFILE/sessions/$SESSION/cliblob"
+   CMDFILE="$HOME/.dagknows/$PROFILE/sessions/$SESSION/commands"
+   echo $CMDFILE
+}
+
 dagknows_start_session_script() {
    PID=`echo $$`
    MYPPID=`ps -o ppid= -p ${PID} | xargs`
@@ -8,16 +36,17 @@ dagknows_start_session_script() {
    if [ "$SESSION" = "" -o "$PROFILE" = "" ]; then
      return
    fi
-   BLOBFILE="~/.dagknows/$PROFILE/sessions/$SESSION/cliblob"
-   CMDFILE="~/.dagknows/$PROFILE/sessions/$SESSION/commands"
+   BLOBFILE=`dagknows_cli_blobfile`
+   CMDFILE=`dagknows_cmd_file`
    if [ "$MYPCMD" != "script" ]; then
-      echo "DagKnows Shell Recording On: $SESSION"
+      echo "DagKnows Shell Recording On: $SESSION to $BLOBFILE"
+      touch $BLOBFILE
       script -a -q -F $BLOBFILE
    else
    fi
 }
 
-dagknows_prexec() {
+dagknows_preexec() {
    PID=`echo $$`
    MYPPID=`ps -o ppid= -p ${PID} | xargs`
    MYPCMD=`ps -o comm= -p ${MYPPID} | xargs`
@@ -27,8 +56,8 @@ dagknows_prexec() {
      return
    fi
 
-   BLOBFILE="~/.dagknows/$PROFILE/sessions/$SESSION/cliblob"
-   CMDFILE="~/.dagknows/$PROFILE/sessions/$SESSION/commands"
+   BLOBFILE=`dagknows_cli_blobfile`
+   CMDFILE=`dagknows_cmd_file`
    if [ "$MYPCMD" = "script" ]; then
       if [ ! -f "$BLOBFILE" ]; then
         echo "WARNING - Please start a new shell, script output file ($BLOBFILE) missing"
@@ -41,22 +70,6 @@ dagknows_prexec() {
    fi
 }
 
-dagknows_curr_profile() {
-  if [ -f "~/.dagknows/current_profile" ]; then
-    cat "~/.dagknows/current_profile"
-  else
-    echo ""
-  fi
-}
-
-dagknows_curr_session() {
-  if [ -f "~/.dagknows/current_session" ]; then
-    cat "~/.dagknows/current_session"
-  else
-    echo ""
-  fi
-}
-
 dagknows_precmd() {
   SESSION=`dagknows_curr_session`
   PROFILE=`dagknows_curr_profile`
@@ -66,11 +79,11 @@ dagknows_precmd() {
 }
 
 preexec() {
-  dagknows_preexec
+  dagknows_preexec $*
 }
 
-preexec() {
-  dagknows_precmd
+precmd() {
+  dagknows_precmd $*
 }
 
 dagknows_start_session_script
