@@ -46,16 +46,8 @@ dagknows_start_session_script() {
    if [ "$SESSION" = "" -o "$PROFILE" = "" ]; then
      return
    fi
-   BLOBFILE=`dagknows_cli_blobfile`
-   CMDFILE=`dagknows_cmd_file`
    if [ "$MYPCMD" != "script" ]; then
-      echo "###############################################################"
-      echo 
-      echo "        DagKnows Shell Recording On: $SESSION to $BLOBFILE"     
-      echo 
-      echo "###############################################################"
-      touch $BLOBFILE
-      script -a -q -F $BLOBFILE
+      dk sessions start
    else
    fi
 }

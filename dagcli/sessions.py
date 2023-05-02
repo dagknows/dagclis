@@ -5,6 +5,7 @@ from dagcli.utils import present
 from dagcli.transformers import *
 import subprocess, os, base64
 import requests
+import psutil
 
 app = typer.Typer()
 
@@ -71,7 +72,7 @@ def remove_user(ctx: typer.Context, session_id: str, user_ids: List[str] = typer
 def join(ctx: typer.Context,
          session_id: str = typer.Argument(..., help="Session ID to join and start recording.")):
     """ Join's an existing sessions.  Any previous sessions are flushed out and exported. """
-    join_session(ctx, session_id)
+    start_shell(ctx, session_id)
 
 @app.command()
 def record(ctx: typer.Context,
@@ -86,7 +87,7 @@ def record(ctx: typer.Context,
     # Todo - create
     session = newapi(ctx.obj, "/v1/sessions", { "subject": subject, }, "POST")
     session_id = session["session"]["id"]
-    join_session(ctx, session_id)
+    start_shell(ctx, session_id)
 
 
 @app.command()
@@ -111,24 +112,6 @@ def flush(ctx: typer.Context,
     cmdblobs = open(cmdfile).read()
     cmdblobb64 = base64.b64encode(cmdblobs.encode()).decode().strip("\n")
     if not cmdblobb64: return
-
-    """
-    subprocess.run(f"cat {cliblob_file_path} | base64 > {cliblob_file_path_base64}", shell=True)
-    cliblob_file_fh = open(cliblob_file_path_base64, "r")
-    cliblob = cliblob_file_fh.read()
-    cliblob = cliblob.strip('\n')
-    #print("Here's base64ed cliblob: ", cliblob)
-    cliblob_file_fh.close()
-    #print("Done with base64-ing cliblob")
- 
-    #Read the commands file
-    subprocess.run(f"cat {cmd_file_path} | base64 > {cmd_file_path_base64}", shell=True)
-    cmd_file_fh = open(cmd_file_path_base64, "r")
-    cmd = cmd_file_fh.read()
-    cmd = cmd.strip('\n')
-    cmd_file_fh.close()
-    #print("Done with base64-ing cmds")
-    """
  
     # Construct the request
     reqObj = {}
@@ -150,29 +133,56 @@ def flush(ctx: typer.Context,
         rrhost = apihost[:-len("/api")]
     else:
         raise Exception(f"Invalid RRHost: {apihost}")
-    # import ipdb ; ipdb.set_trace()
+
+    from urllib3.exceptions import InsecureRequestWarning
+    from urllib3 import disable_warnings
+    disable_warnings(InsecureRequestWarning)
     respObj = requests.post(f"{rrhost}/processCliBlob", json=reqObj, headers=headers, verify=False)
 
     # Now truncate both the files so we can restart
     open(blobfile, "a").truncate(0)
     open(cmdfile, "a").truncate(0)
 
-
-def join_session(ctx: typer.Context, session_id: str):
+def script_already_started(ctx, session_id):
     ctx.obj.getpath(f"sessions/{session_id}", is_dir=True, ensure=True)
+    blobfile = ctx.obj.getpath(f"sessions/{session_id}/cliblob")
+    currpid = os.getpid()
+    currproc = psutil.Process(currpid)
+    while currproc:
+        if currproc.name() == "script" and currproc.cmdline()[-1] == blobfile:
+            return True
+        currproc = currproc.parent()
+    return False
+
+def start_shell(ctx: typer.Context, session_id: str):
+    ctx.obj.getpath(f"sessions/{session_id}", is_dir=True, ensure=True)
+
+    if script_already_started(ctx, session_id):
+        import ipdb ; ipdb.set_trace()
+        print("You are already joint in this session.")
+        return
+
     # ctx.obj.getpath("enable_recording", ensure=True)
     with open(ctx.obj.getpath("current_session", profile_relative=False), "w") as currsessfile:
         currsessfile.write(session_id)
     with open(ctx.obj.getpath("current_profile", profile_relative=False), "w") as currproffile:
         currproffile.write(ctx.obj.curr_profile)
+
+    blobfile = ctx.obj.getpath(f"sessions/{session_id}/cliblob")
     typer.echo(f"Congratulations.  You are now recording sessions {session_id}")
+    print("###############################################################")
+    print("")
+    print("")
+    print(f"      DagKnows Shell Recording On: {session_id}   ")
+    print("")
+    print("###############################################################")
+    subprocess.run(f"script -a -q -F {blobfile}", shell=True)
+    subprocess.run(f"reset")
+    print(f"DagKnows Shell Recording Turned Off")
 
 @app.command()
-def stop(ctx: typer.Context):
-    """ Exports a session currently being recorded. """
-    enable_file = ctx.obj.getpath("enable_recording")
-    if os.path.isfile(enable_file):
-        os.remove(enable_file)
+def start(ctx: typer.Context):
+    """ Global starting of a script to capture all commands.  All user provided profile and session IDs will be overridden and the current_session/current_profile in ~/.dagknows folder will be taken. """
     sessfile = ctx.obj.getpath("current_session", profile_relative=False)
     proffile = ctx.obj.getpath("current_profile", profile_relative=False)
     session_id = profile = ""
@@ -183,20 +193,39 @@ def stop(ctx: typer.Context):
     if session_id and profile:
         # Use the profile in the stop command instead of what ever the user provided
         ctx.obj.curr_profile = profile
-        pidsfile = ctx.obj.getpath(f"sessions/{session_id}/PIDS")
-        pids = [int(p.strip()) for p in open(pidsfile).read().split("\n") if p.strip()]
         blobfile = ctx.obj.getpath(f"sessions/{session_id}/cliblob")
-        import psutil
-        for pid in pids:
-            # see if the pid matches a script command with the typescript file
-            # pointing to sessions/cliblob, if so then delete it
-            try:
-                proc = psutil.Process(pid)
-                if proc.name() == "script" and proc.cmdline()[-1] == blobfile:
-                    print("Script session terminating: ", pid)
-            except psutil.NoSuchProcess:
-                print("Script session already finished: ", pid)
+        start_shell(ctx, session_id)
+
+@app.command()
+def stop(ctx: typer.Context):
+    """ Exports a session currently being recorded. """
+    sessfile = ctx.obj.getpath("current_session", profile_relative=False)
+    proffile = ctx.obj.getpath("current_profile", profile_relative=False)
+    session_id = profile = ""
+    if os.path.isfile(sessfile):
+        session_id = open(sessfile).read().strip()
+    if os.path.isfile(proffile):
+        profile = open(proffile).read().strip()
+    if session_id and profile:
+        # Use the profile in the stop command instead of what ever the user provided
+        ctx.obj.curr_profile = profile
+        blobfile = ctx.obj.getpath(f"sessions/{session_id}/cliblob")
+        currproc = psutil.Process(os.getpid())
+        kill_later = []
+        for proc in psutil.process_iter():
+            if proc.name() == "script" and proc.cmdline()[-1] == blobfile:
+                print("Script session terminating: ", proc)
+                if proc in currproc.parents():
+                    kill_later.append(proc)
+                else:
+                    parent = proc.parent()
+                    proc.kill()
+                    # import ipdb ; ipdb.set_trace()
+                    # parent.kill()
+
         os.remove(sessfile)
         os.remove(proffile)
-        os.remove(pidsfile)
-        typer.echo("Congratulations.  You have stopped recording")
+        assert len(kill_later) <= 1, "Cannot be part of too many parent processes??"
+        if kill_later:
+            # import ipdb ; ipdb.set_trace()
+            kill_later[0].kill()
