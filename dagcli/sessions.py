@@ -1,7 +1,7 @@
 import typer
 from typing import List
 from dagcli.client import newapi
-from dagcli.utils import present, copy_shellconfigs
+from dagcli.utils import present, copy_shellconfigs, print_reco
 from dagcli.transformers import *
 import subprocess, os, base64
 import requests
@@ -144,15 +144,26 @@ def flush(ctx: typer.Context,
     else:
         raise Exception(f"Invalid RRHost: {apihost}")
 
+    write_backup = True
     from urllib3.exceptions import InsecureRequestWarning
     from urllib3 import disable_warnings
     disable_warnings(InsecureRequestWarning)
     try:
         respObj = requests.post(f"{rrhost}/processCliBlob", json=reqObj, headers=headers, verify=False)
+        result = respObj.json()
+        recommendations = result.get("recommendations", [])
+        if recommendations:
+            print("Recommendations: ")
+            print("----------------------------------------------------")
+            for rec in recommendations:
+                print_reco(rec)
     except error:
-        errmsg = f"{time.time()} Server error accepting CLI command and outputs.  Backing up locally"
         print(errmsg)
         # back it up if there is a failure
+        write_backup = True
+
+    if write_backup:
+        errmsg = f"{time.time()} Server error accepting CLI command and outputs.  Backing up locally"
         blobfilebak = ctx.obj.getpath(f"sessions/{session_id}/cliblob.bak", is_dir=False, ensure=True)
         with open(blobfilebak, "a") as bf:
             bf.write(errmsg + "\n")

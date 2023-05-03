@@ -4,6 +4,29 @@ from boltons.iterutils import remap
 from rich import print as rprint
 from rich.tree import Tree
 
+def print_reco(reco):
+    class bcolors:
+        HEADER = '\033[95m'
+        OKBLUE = '\033[94m'
+        OKCYAN = '\033[96m'
+        OKGREEN = '\033[92m'
+        WARNING = '\033[93m'
+        FAIL = '\033[91m'
+        ENDC = '\033[0m'
+        BOLD = '\033[1m'
+        UNDERLINE = '\033[4m'
+
+    cmd = reco['cmd']
+    title = reco['title']
+    dag_title = reco['dag_title']
+    dag_id = reco['dag_id']
+    print(bcolors.OKGREEN + bcolors.BOLD + "next: " + bcolors.ENDC + bcolors.ENDC + ' ' + title)
+    print(bcolors.OKGREEN + bcolors.BOLD + "command: " + bcolors.ENDC + bcolors.ENDC)
+    print(" ", bcolors.OKBLUE + bcolors.BOLD + cmd + bcolors.ENDC + bcolors.ENDC)
+    print(bcolors.OKGREEN + bcolors.BOLD + "runbook: " + bcolors.ENDC + bcolors.ENDC + ' ' + dag_title)
+    print(bcolors.OKGREEN + bcolors.BOLD + "runbook id: " + bcolors.ENDC + bcolors.ENDC + ' ' + dag_id)
+    print("----------------------------------------------------")
+
 def copy_shellconfigs(ctx: typer.Context):
     dkzshrc = ctx.obj.getpath("zshrc", profile_relative=False)
     with open(dkzshrc, "w") as zshrc:
