@@ -45,11 +45,9 @@ def init(ctx: typer.Context,
 
     if not access_token:
         from rich.prompt import Prompt, Confirm
-        login = False
-        if not DISABLE_LOGIN:
-            login = username or password
-            if not login:
-                login = Confirm.ask("Would you like to login to get your access token?", default=True)
+        login = username or password
+        if not login:
+            login = Confirm.ask("Would you like to login to get your access token?", default=True)
         if login:
             org = Prompt.ask("Please enter your org: ", default="dagknows")
             if not username:
