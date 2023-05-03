@@ -70,8 +70,6 @@ def add_nodes(ctx: typer.Context,
               node_ids: List[str] = typer.Option(..., help = "First NodeID to add to the Dag"),
               nodeids: List[str] = typer.Argument(None, help = "List of more Node IDs to add to the Dag")):
     """ Adds nodes (by node IDs) to a Dag.  If a node already exists it is ignored. """
-    # node_ids = []
-    # dagcli nodes create title --dag_id = this
     all_node_ids = node_ids + nodeids
     if all_node_ids:
         result = newapi(ctx.obj, f"/v1/dags/{dag_id}", {

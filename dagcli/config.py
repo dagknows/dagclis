@@ -1,25 +1,11 @@
 
 import typer, os
 from dagcli.client import newapi
-from dagcli.utils import present
+from dagcli.utils import present, copy_shellconfigs
 from dagcli.transformers import *
 from typing import List
 
 app = typer.Typer()
-
-def copy_shellconfigs(ctx: typer.Context):
-    dkzshrc = ctx.obj.getpath("zshrc", profile_relative=False)
-    with open(dkzshrc, "w") as zshrc:
-        from pkg_resources import resource_string
-        zshrcdata = resource_string("dagcli", "scripts/zshrc")
-        zshrc.write(zshrcdata.decode())
-    from rich.prompt import Prompt, Confirm
-    if Confirm.ask("Would you like to source dagknows shell confings in your .zshrc?", default=True):
-        usrzshrc = os.path.expanduser("~/.zshrc")
-        added_line = f"source {dkzshrc}"
-        if added_line not in open(usrzshrc).read().split("\n"):
-            with open(usrzshrc, "a") as zshrc:
-                zshrc.write(f"\n{added_line}")
 
 @app.command()
 def init(ctx: typer.Context,

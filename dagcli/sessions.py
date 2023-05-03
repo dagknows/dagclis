@@ -1,7 +1,7 @@
 import typer
 from typing import List
 from dagcli.client import newapi
-from dagcli.utils import present
+from dagcli.utils import present, copy_shellconfigs
 from dagcli.transformers import *
 import subprocess, os, base64
 import requests
@@ -48,26 +48,35 @@ def search(ctx: typer.Context, subject: str = typer.Option("", help = "Subject t
     }, "GET"))
 
 @app.command()
-def add_user(ctx: typer.Context, session_id: str, user_ids: List[str] = typer.Argument(..., help = "List of user IDs to add to the session")):
-    """ Add a user to a session. """
-    if not user_ids: return
+def add_users(ctx: typer.Context, session_id: str,
+             user_ids: List[str] = typer.Option(..., help = "First user id to add to the session"),
+             userids: List[str] = typer.Argument(None, help = "List of more user IDs to add to the session"),
+             ):
+    """ Add users to a session. """
+    all_user_ids = user_ids + userids
+    if not all_user_ids: return
     if ctx.obj.output_format == "tree": 
         ctx.obj.data["output_format"] = "yaml"
-    present(ctx, newapi(ctx.obj, f"/v1/sessions/{session_id}", {
+    result = newapi(ctx.obj, f"/v1/sessions/{session_id}", {
         "session": {},
-        "add_users": user_ids,
-    }, "PATCH"))
+        "add_users": all_user_ids,
+    }, "PATCH")
+    present(ctx, result)
 
 @app.command()
-def remove_user(ctx: typer.Context, session_id: str, user_ids: List[str] = typer.Argument(..., help = "List of user IDs to remove from the session")):
-    """ Remove a user from a session. """
-    if not user_ids: return
+def remove_users(ctx: typer.Context, session_id: str,
+                user_ids: List[str] = typer.Option(..., help = "First user IDs to remove from the session"),
+                userids: List[str] = typer.Argument(None, help = "List of more user IDs to remove from the session")):
+    """ Remove users from a session. """
+    all_user_ids = user_ids + userids
+    if not all_user_ids: return
     if ctx.obj.output_format == "tree": 
         ctx.obj.data["output_format"] = "yaml"
-    present(ctx, newapi(ctx.obj, f"/v1/sessions/{session_id}", {
+    result = newapi(ctx.obj, f"/v1/sessions/{session_id}", {
         "session": {},
-        "remove_users": user_ids,
-    }, "PATCH"))
+        "remove_users": all_user_ids,
+    }, "PATCH")
+    present(ctx, result)
 
 @app.command()
 def join(ctx: typer.Context,
@@ -183,8 +192,11 @@ def script_already_started(ctx, session_id):
 
 def start_shell(ctx: typer.Context, session_id: str):
     ctx.obj.getpath(f"sessions/{session_id}", is_dir=True, ensure=True)
-
     if script_already_started(ctx, session_id):
+        return
+
+    if not copy_shellconfigs(ctx):
+        typer.echo("Cannot start shell without updating shell configs")
         return
 
     # ctx.obj.getpath("enable_recording", ensure=True)
@@ -196,7 +208,6 @@ def start_shell(ctx: typer.Context, session_id: str):
     blobfile = ctx.obj.getpath(f"sessions/{session_id}/cliblob")
     typer.echo(f"Congratulations.  You are now recording sessions {session_id}")
     print("###############################################################")
-    print("")
     print("")
     print(f"      DagKnows Shell Recording On: {session_id}   ")
     print("")

@@ -1,8 +1,25 @@
-import typer, yaml, json
+import typer, yaml, json, os
 from pprint import pprint
 from boltons.iterutils import remap
 from rich import print as rprint
 from rich.tree import Tree
+
+def copy_shellconfigs(ctx: typer.Context):
+    dkzshrc = ctx.obj.getpath("zshrc", profile_relative=False)
+    with open(dkzshrc, "w") as zshrc:
+        from pkg_resources import resource_string
+        zshrcdata = resource_string("dagcli", "scripts/zshrc")
+        zshrc.write(zshrcdata.decode())
+    from rich.prompt import Prompt, Confirm
+    usrzshrc = os.path.expanduser("~/.zshrc")
+    added_line = f"source {dkzshrc}"
+    line_found = (os.path.isfile(usrzshrc) and added_line in open(usrzshrc).read().split("\n"))
+    if not line_found:
+        if Confirm.ask("Would you like to source dagknows shell confings in your .zshrc?", default=True):
+            with open(usrzshrc, "a") as zshrc:
+                zshrc.write(f"\n{added_line}")
+                line_found = True
+    return line_found
 
 def present(ctx: typer.Context, results, notree=False):
     def unnecessary_fields(p, k, v):
