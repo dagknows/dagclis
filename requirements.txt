@@ -18,6 +18,8 @@ commonmark==0.9.1
     # via rich
 idna==3.4
     # via requests
+psutil==5.9.5
+    # via dagknows (pyproject.toml)
 pygments==2.15.1
     # via rich
 pyyaml==6.0

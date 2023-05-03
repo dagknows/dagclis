@@ -6,6 +6,7 @@ from dagcli.transformers import *
 import subprocess, os, base64
 import requests
 import psutil
+import time
 
 app = typer.Typer()
 
@@ -137,7 +138,21 @@ def flush(ctx: typer.Context,
     from urllib3.exceptions import InsecureRequestWarning
     from urllib3 import disable_warnings
     disable_warnings(InsecureRequestWarning)
-    respObj = requests.post(f"{rrhost}/processCliBlob", json=reqObj, headers=headers, verify=False)
+    try:
+        respObj = requests.post(f"{rrhost}/processCliBlob", json=reqObj, headers=headers, verify=False)
+    except error:
+        errmsg = f"{time.time()} Server error accepting CLI command and outputs.  Backing up locally"
+        print(errmsg)
+        # back it up if there is a failure
+        blobfilebak = ctx.obj.getpath(f"sessions/{session_id}/cliblob.bak", is_dir=False, ensure=True)
+        with open(blobfilebak, "a") as bf:
+            bf.write(errmsg + "\n")
+            bf.write(open(blobfile).read())
+
+        cmdfilebak = ctx.obj.getpath(f"sessions/{session_id}/commands.bak", is_dir=False, ensure=True)
+        with open(cmdfilebak, "a") as cf:
+            cf.write(errmsg + "\n")
+            cf.write(open(cmdfile).read())
 
     # Now truncate both the files so we can restart
     open(blobfile, "a").truncate(0)
