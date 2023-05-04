@@ -57,22 +57,7 @@ def init(ctx: typer.Context,
     dkconfig.save()
 
 @app.command()
-def show(ctx: typer.Context, as_json: bool=typer.Option(False, help="Control whether print as json or yaml")):
-    """ Show all defaults and environments. """
-    out = {
-        "curr_profile": ctx.obj.curr_profile,
-        "profile_data": ctx.obj.profile_data,
-        "overrides": ctx.obj.data,
-    }
-    if as_json:
-        from pprint import pprint
-        pprint(out)
-    else:
-        import yaml
-        print(yaml.dump(out, sort_keys=False))
-
-@app.command()
-def autoexport(ctx: typer.Context, as_json: bool=typer.Option(False, help="Control whether print as json or yaml")):
+def profile(ctx: typer.Context, as_json: bool=typer.Option(False, help="Control whether print as json or yaml")):
     """ Show all defaults and environments. """
     out = {
         "curr_profile": ctx.obj.curr_profile,

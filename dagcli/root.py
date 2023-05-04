@@ -24,10 +24,10 @@ def common_params(ctx: typer.Context,
         curr_profile_file = os.path.join(dagknows_home_dir, "current_profile")
         if not os.path.isdir(dagknows_home_dir):
             os.makedirs(dagknows_home_dir)
-        if not os.path.isfile(current_profile_file):
-            with open(current_profile_file, "w") as profile_file:
+        if not os.path.isfile(curr_profile_file):
+            with open(curr_profile_file, "w") as profile_file:
                 profile_file.write("default")
-        profile = open(current_profile_file).read().strip() or ""
+        profile = open(curr_profile_file).read().strip() or ""
 
     # For now these are env vars and not params yet
     reqrouter_host = os.environ.get('DagKnowsReqRouterHost', "")
@@ -41,7 +41,9 @@ def common_params(ctx: typer.Context,
                               log_response=log_response)
 
 def ensure_access_token(ctx: typer.Context):
-    if not ctx.obj.access_token:
+    if not ctx.obj.access_token and ctx.info_name != "config":
+        print("Command: ", ctx.command_path)
+        import ipdb ; ipdb.set_trace()
         ctx.fail(f"Access token missing in current config ({ctx.obj.curr_profile}).  You can manually pass an --access-token option, or set the DagKnowsAccessToken or initialize your profile with 'dk config init --profile {ctx.obj.curr_profile}'")
 
 
