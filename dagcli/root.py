@@ -43,7 +43,6 @@ def common_params(ctx: typer.Context,
 def ensure_access_token(ctx: typer.Context):
     if not ctx.obj.access_token and ctx.info_name != "config":
         print("Command: ", ctx.command_path)
-        import ipdb ; ipdb.set_trace()
         ctx.fail(f"Access token missing in current config ({ctx.obj.curr_profile}).  You can manually pass an --access-token option, or set the DagKnowsAccessToken or initialize your profile with 'dk config init --profile {ctx.obj.curr_profile}'")
 
 

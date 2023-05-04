@@ -3,6 +3,17 @@ from pprint import pprint
 from boltons.iterutils import remap
 from rich import print as rprint
 from rich.tree import Tree
+import psutil
+
+ALLOWED_SHELLS = ["bash", "zsh"]
+
+def get_curr_shell():
+    currproc = psutil.Process(os.getppid())
+    while currproc:
+        if currproc.name() in ALLOWED_SHELLS:
+            return currproc.name()
+        currproc = currproc.parent()
+    return None
 
 def print_reco(reco):
     class bcolors:
@@ -27,25 +38,29 @@ def print_reco(reco):
     print(bcolors.OKGREEN + bcolors.BOLD + "runbook id: " + bcolors.ENDC + bcolors.ENDC + ' ' + dag_id)
     print("----------------------------------------------------")
 
-def ensure_shellconfigs(ctx: typer.Context):
-    dkbashrc= ctx.obj.getpath("bashrc", profile_relative=False)
-    dkzshrc = ctx.obj.getpath("zshrc", profile_relative=False)
-    with open(dkbashrc, "w") as zshrc:
+def ensure_shellconfigs(ctx: typer.Context, shell_type=None):
+    for f in ["bashrc", "zshrc", "dag.commonrc", "bash-preexec.sh"]:
         from pkg_resources import resource_string
-        zshrcdata = resource_string("dagcli", "scripts/bashrc")
-        zshrc.write(zshrcdata.decode())
-    with open(dkzshrc, "w") as zshrc:
-        from pkg_resources import resource_string
-        zshrcdata = resource_string("dagcli", "scripts/zshrc")
-        zshrc.write(zshrcdata.decode())
+        respath = ctx.obj.getpath(f, profile_relative=False)
+        resdata = resource_string("dagcli", f"scripts/{f}")
+        with open(respath, "w") as resfile:
+            resfile.write(resdata.decode())
+
+    shell_type = shell_type = get_curr_shell()
+    if not shell_type:
+        raise "Could not detect shell type"
+
+    import ipdb ; ipdb.set_trace()
 
     from rich.prompt import Prompt, Confirm
     if shell_type == "zsh":
+        dkzshrc = ctx.obj.getpath("zshrc", profile_relative=False)
         usr_shell_rc = os.path.expanduser("~/.zshrc")
-        dkshellrc = dkzshrc
+        dk_shell_rc = dkzshrc
     else:
+        dkbashrc= ctx.obj.getpath("bashrc", profile_relative=False)
         usr_shell_rc = os.path.expanduser("~/.bashrc")
-        dkshellrc = dkbashrc
+        dk_shell_rc = dkbashrc
 
     added_line = f"source {dk_shell_rc}"
     line_found = (os.path.isfile(usr_shell_rc) and added_line in open(usr_shell_rc).read().split("\n"))

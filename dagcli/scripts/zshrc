@@ -1,4 +1,7 @@
-source dag.commonrc
+
+fullpath=`readlink -f $0`
+curr_folder=`dirname $fullpath`
+source $curr_folder/dag.commonrc
 
 preexec() {
   dagknows_preexec $*
