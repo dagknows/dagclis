@@ -50,8 +50,6 @@ def ensure_shellconfigs(ctx: typer.Context, shell_type=None):
     if not shell_type:
         raise "Could not detect shell type"
 
-    import ipdb ; ipdb.set_trace()
-
     from rich.prompt import Prompt, Confirm
     if shell_type == "zsh":
         dkzshrc = ctx.obj.getpath("zshrc", profile_relative=False)

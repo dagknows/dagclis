@@ -61,7 +61,6 @@ dagknows_preexec() {
           mv $CMDFILE "${CMDFILE}.bak"
         fi
       else
-        grep -qxF "$MYPPID" $PIDSFILE || echo "$MYPPID" >> $PIDSFILE
         echo "PROMPT: " "'${(%%)PS1}'" " CMD: " $1  >> $CMDFILE
       fi
    fi
@@ -73,9 +72,10 @@ dagknows_precmd() {
   if [ "$SESSION" != "" -a "$PROFILE" != "" ]; then
     dk --profile=$PROFILE sessions flush $SESSION
 
-    SESS_STR="DagKnows - $SESSION"
-    if echo "$PS1" | grep -q -v $SESS_STR; then
-      PS1="[$SESS_STR] $PS1"
+    if echo "$PS1" | grep -q -v "DagKnows - [^]]*]"; then
+      PS1="[DagKnows - $PROFILE:$SESSION] $PS1"
+    else
+      PS1=`echo $PS1 | sed -e "s/DagKnows - [^]]*]/DagKnows - $PROFILE:$SESSION]/g"`
     fi
   fi
 }
