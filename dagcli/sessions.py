@@ -1,7 +1,7 @@
 import typer
 from typing import List
 from dagcli.client import newapi
-from dagcli.utils import present, copy_shellconfigs, print_reco
+from dagcli.utils import present, ensure_shellconfigs, print_reco
 from dagcli.transformers import *
 import subprocess, os, base64
 import requests
@@ -206,15 +206,15 @@ def start_shell(ctx: typer.Context, session_id: str):
     if script_already_started(ctx, session_id):
         return
 
-    if not copy_shellconfigs(ctx):
+    if not ensure_shellconfigs(ctx):
         typer.echo("Cannot start shell without updating shell configs")
         return
 
     # ctx.obj.getpath("enable_recording", ensure=True)
-    with open(ctx.obj.getpath("current_session", profile_relative=False), "w") as currsessfile:
-        currsessfile.write(session_id)
     with open(ctx.obj.getpath("current_profile", profile_relative=False), "w") as currproffile:
         currproffile.write(ctx.obj.curr_profile)
+    with open(ctx.obj.getpath("current_session"), "w") as currsessfile:
+        currsessfile.write(session_id)
 
     blobfile = ctx.obj.getpath(f"sessions/{session_id}/cliblob")
     typer.echo(f"Congratulations.  You are now recording sessions {session_id}")
@@ -230,8 +230,8 @@ def start_shell(ctx: typer.Context, session_id: str):
 @app.command()
 def start(ctx: typer.Context):
     """ Global starting of a script to capture all commands.  All user provided profile and session IDs will be overridden and the current_session/current_profile in ~/.dagknows folder will be taken. """
-    sessfile = ctx.obj.getpath("current_session", profile_relative=False)
     proffile = ctx.obj.getpath("current_profile", profile_relative=False)
+    sessfile = ctx.obj.getpath("current_session")
     session_id = profile = ""
     if os.path.isfile(sessfile):
         session_id = open(sessfile).read().strip()
@@ -246,8 +246,8 @@ def start(ctx: typer.Context):
 @app.command()
 def stop(ctx: typer.Context):
     """ Exports a session currently being recorded. """
-    sessfile = ctx.obj.getpath("current_session", profile_relative=False)
     proffile = ctx.obj.getpath("current_profile", profile_relative=False)
+    sessfile = ctx.obj.getpath("current_session")
     session_id = profile = ""
     if os.path.isfile(sessfile):
         session_id = open(sessfile).read().strip()

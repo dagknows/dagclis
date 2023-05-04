@@ -1,7 +1,7 @@
 
 import typer, os
 from dagcli.client import newapi
-from dagcli.utils import present, copy_shellconfigs
+from dagcli.utils import present, ensure_shellconfigs
 from dagcli.transformers import *
 from typing import List
 
@@ -19,7 +19,7 @@ def init(ctx: typer.Context,
     dkconfig = ctx.obj
 
     # copy shell configs first
-    copy_shellconfigs(ctx)
+    ensure_shellconfigs(ctx)
 
     # Enter the name of a default profile
     dkconfig.curr_profile = profile

@@ -27,20 +27,32 @@ def print_reco(reco):
     print(bcolors.OKGREEN + bcolors.BOLD + "runbook id: " + bcolors.ENDC + bcolors.ENDC + ' ' + dag_id)
     print("----------------------------------------------------")
 
-def copy_shellconfigs(ctx: typer.Context):
+def ensure_shellconfigs(ctx: typer.Context):
+    dkbashrc= ctx.obj.getpath("bashrc", profile_relative=False)
     dkzshrc = ctx.obj.getpath("zshrc", profile_relative=False)
+    with open(dkbashrc, "w") as zshrc:
+        from pkg_resources import resource_string
+        zshrcdata = resource_string("dagcli", "scripts/bashrc")
+        zshrc.write(zshrcdata.decode())
     with open(dkzshrc, "w") as zshrc:
         from pkg_resources import resource_string
         zshrcdata = resource_string("dagcli", "scripts/zshrc")
         zshrc.write(zshrcdata.decode())
+
     from rich.prompt import Prompt, Confirm
-    usrzshrc = os.path.expanduser("~/.zshrc")
-    added_line = f"source {dkzshrc}"
-    line_found = (os.path.isfile(usrzshrc) and added_line in open(usrzshrc).read().split("\n"))
+    if shell_type == "zsh":
+        usr_shell_rc = os.path.expanduser("~/.zshrc")
+        dkshellrc = dkzshrc
+    else:
+        usr_shell_rc = os.path.expanduser("~/.bashrc")
+        dkshellrc = dkbashrc
+
+    added_line = f"source {dk_shell_rc}"
+    line_found = (os.path.isfile(usr_shell_rc) and added_line in open(usr_shell_rc).read().split("\n"))
     if not line_found:
-        if Confirm.ask("Would you like to source dagknows shell confings in your .zshrc?", default=True):
-            with open(usrzshrc, "a") as zshrc:
-                zshrc.write(f"\n{added_line}")
+        if Confirm.ask("Would you like to source dagknows shell confings in your {usr_shell_rc} file?", default=True):
+            with open(usr_shell_rc, "a") as usr_shell_rc_file:
+                usr_shell_rc_file.write(f"\n{added_line}")
                 line_found = True
     return line_found
 
