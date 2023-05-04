@@ -39,7 +39,7 @@ def init(ctx: typer.Context,
             if not username:
                 username = Prompt.ask("Please enter your username: ")
             if not password:
-                password = Prompt.ask("Please enter your password: ")
+                password = Prompt.ask("Please enter your password: ", password=True)
             # make call and get access_token
             payload = {"org": org,
                        "username": username,
