@@ -21,17 +21,13 @@ def common_params(ctx: typer.Context,
     # See if there is a current file
     dagknows_home_dir = os.path.expanduser(dagknows_home)
     if not profile:
-        curr_config_file = os.path.join(dagknows_home_dir, "current")
+        curr_profile_file = os.path.join(dagknows_home_dir, "current_profile")
         if not os.path.isdir(dagknows_home_dir):
             os.makedirs(dagknows_home_dir)
-        if not os.path.isfile(curr_config_file):
-            with open(curr_config_file, "w") as configfile:
-                curr_config = {
-                    "profile": "default"
-                }
-                configfile.write(json.dumps(curr_config, indent=4))
-        curr_config = json.loads(open(curr_config_file).read().strip() or "{}")
-        profile = curr_config["profile"]
+        if not os.path.isfile(current_profile_file):
+            with open(current_profile_file, "w") as profile_file:
+                profile_file.write("default")
+        profile = open(current_profile_file).read().strip() or ""
 
     # For now these are env vars and not params yet
     reqrouter_host = os.environ.get('DagKnowsReqRouterHost', "")
