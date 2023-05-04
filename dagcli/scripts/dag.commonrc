@@ -1,0 +1,92 @@
+
+dagknows_curr_profile() {
+  if [ -f ~/.dagknows/current_profile ]; then
+    cat ~/.dagknows/current_profile
+  fi
+}
+
+dagknows_curr_session() {
+  if [ -f ~/.dagknows/current_session ]; then
+    cat ~/.dagknows/current_session
+  fi
+}
+
+dagknows_pids_file() {
+   SESSION=`dagknows_curr_session`
+   PROFILE=`dagknows_curr_profile`
+   PIDSFILE="$HOME/.dagknows/$PROFILE/sessions/$SESSION/PIDS"
+   if [ ! -f $PIDSFILE ]; then
+     touch $PIDSFILE
+   fi
+   echo $PIDSFILE
+}
+
+dagknows_cli_blobfile() {
+   SESSION=`dagknows_curr_session`
+   PROFILE=`dagknows_curr_profile`
+   BLOBFILE="$HOME/.dagknows/$PROFILE/sessions/$SESSION/cliblob"
+   CMDFILE="$HOME/.dagknows/$PROFILE/sessions/$SESSION/commands"
+   echo $BLOBFILE
+}
+
+dagknows_cmd_file() {
+   SESSION=`dagknows_curr_session`
+   PROFILE=`dagknows_curr_profile`
+   BLOBFILE="$HOME/.dagknows/$PROFILE/sessions/$SESSION/cliblob"
+   CMDFILE="$HOME/.dagknows/$PROFILE/sessions/$SESSION/commands"
+   echo $CMDFILE
+}
+
+dagknows_start_session_script() {
+   PID=`echo $$`
+   MYPPID=`ps -o ppid= -p ${PID} | xargs`
+   MYPCMD=`ps -o comm= -p ${MYPPID} | xargs`
+   SESSION=`dagknows_curr_session`
+   PROFILE=`dagknows_curr_profile`
+   if [ "$SESSION" = "" -o "$PROFILE" = "" ]; then
+     return
+   fi
+   if [ "$MYPCMD" != "script" ]; then
+      dk sessions start
+   else
+   fi
+}
+
+dagknows_preexec() {
+   PID=`echo $$`
+   MYPPID=`ps -o ppid= -p ${PID} | xargs`
+   MYPCMD=`ps -o comm= -p ${MYPPID} | xargs`
+   SESSION=`dagknows_curr_session`
+   PROFILE=`dagknows_curr_profile`
+   if [ "$SESSION" = "" -o "$PROFILE" = "" ]; then
+     return
+   fi
+
+   PIDSFILE=`dagknows_pids_file`
+   BLOBFILE=`dagknows_cli_blobfile`
+   CMDFILE=`dagknows_cmd_file`
+   if [ "$MYPCMD" = "script" ]; then
+      if [ ! -f "$BLOBFILE" ]; then
+        echo "WARNING - Please start a new shell, script output file ($BLOBFILE) missing"
+        if [ -f "$CMDFILE" ]; then
+          mv $CMDFILE "${CMDFILE}.bak"
+        fi
+      else
+        grep -qxF "$MYPPID" $PIDSFILE || echo "$MYPPID" >> $PIDSFILE
+        echo "PROMPT: " "'${(%%)PS1}'" " CMD: " $1  >> $CMDFILE
+      fi
+   fi
+}
+
+dagknows_precmd() {
+  SESSION=`dagknows_curr_session`
+  PROFILE=`dagknows_curr_profile`
+  if [ "$SESSION" != "" -a "$PROFILE" != "" ]; then
+    dk --profile=$PROFILE sessions flush $SESSION
+
+    SESS_STR="DagKnows - $SESSION"
+    if echo "$PS1" | grep -q -v $SESS_STR; then
+      PS1="[$SESS_STR] $PS1"
+    fi
+  fi
+}
