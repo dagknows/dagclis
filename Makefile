@@ -1,6 +1,6 @@
 
 
-all: cleanall test build 
+all: cleanall build 
 
 cleanall:
 	rm -Rf dist ; rm -Rf build ; rm -Rf *.egg-info

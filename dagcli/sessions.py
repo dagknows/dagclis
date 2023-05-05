@@ -148,30 +148,35 @@ def flush(ctx: typer.Context,
     from urllib3.exceptions import InsecureRequestWarning
     from urllib3 import disable_warnings
     disable_warnings(InsecureRequestWarning)
+    errmsg = ""
     try:
         respObj = requests.post(f"{rrhost}/processCliBlob", json=reqObj, headers=headers, verify=False)
-        result = respObj.json()
-        recommendations = result.get("recommendations", [])
-        if recommendations:
-            print("Recommendations: ")
-            print("----------------------------------------------------")
-            for rec in recommendations:
-                print_reco(rec)
-    except error:
-        print(errmsg)
+        if respObj.status_code == 200:
+            result = respObj.json()
+            recommendations = result.get("recommendations", [])
+            if recommendations:
+                print("Recommendations: ")
+                print("----------------------------------------------------")
+                for rec in recommendations:
+                    print_reco(rec)
+        else:
+            write_backup = True
+            errmsg = f"{time.time()} Server error accepting CLI command and outputs.  Backing up locally"
+    except Exception as error:
         # back it up if there is a failure
         write_backup = True
+        errmsg = f"{time.time()} Server error accepting CLI command and outputs.  Backing up locally"
+        print(errmsg)
 
     if write_backup:
-        errmsg = f"{time.time()} Server error accepting CLI command and outputs.  Backing up locally"
         blobfilebak = ctx.obj.getpath(f"sessions/{session_id}/cliblob.bak", is_dir=False, ensure=True)
         with open(blobfilebak, "a") as bf:
-            bf.write(errmsg + "\n")
+            if errmsg: bf.write(errmsg + "\n")
             bf.write(open(blobfile).read())
 
         cmdfilebak = ctx.obj.getpath(f"sessions/{session_id}/commands.bak", is_dir=False, ensure=True)
         with open(cmdfilebak, "a") as cf:
-            cf.write(errmsg + "\n")
+            if errmsg: cf.write(errmsg + "\n")
             cf.write(open(cmdfile).read())
 
     # Now truncate both the files so we can restart
