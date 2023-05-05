@@ -13,8 +13,9 @@ def common_params(ctx: typer.Context,
                   dagknows_home: str = typer.Option("~/.dagknows", envvar="DagKnowsHomeDir", help="Dir for DagKnows configs"),
                   profile: str = typer.Option(None, envvar="DagKnowsProfile", help="DagKnows profile to use.  To set a default run `dk profiles set-default`"),
                   access_token: str = typer.Option(None, envvar='DagKnowsAccessToken', help='Access token for accessing DagKnows APIs'),
-                  log_request: bool = typer.Option(False, help='Enables logging of requests'),
-                  log_response: bool = typer.Option(False, help='Enables logging of responses'),
+                  show_recommendations: bool = typer.Option(False, help='Whether to show recommendations or not'),
+                  log_requests: bool = typer.Option(None, help='Enables logging of requests'),
+                  log_responses: bool = typer.Option(None, help='Enables logging of responses'),
                   format: str = typer.Option("tree", envvar='DagKnowsOutputFormat', help='Output format to print as - json, yaml, tree')):
     assert ctx.obj is None
 
@@ -37,8 +38,9 @@ def common_params(ctx: typer.Context,
                               reqrouter_host=reqrouter_host,
                               api_host=api_host,
                               access_token=access_token,
-                              log_request=log_request,
-                              log_response=log_response)
+                              show_recommendations=show_recommendations,
+                              log_requests=log_requests,
+                              log_responses=log_responses)
 
 def ensure_access_token(ctx: typer.Context):
     if not ctx.obj.access_token and ctx.info_name != "config":

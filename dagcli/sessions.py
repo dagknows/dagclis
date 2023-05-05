@@ -152,13 +152,15 @@ def flush(ctx: typer.Context,
     try:
         respObj = requests.post(f"{rrhost}/processCliBlob", json=reqObj, headers=headers, verify=False)
         if respObj.status_code == 200:
-            result = respObj.json()
-            recommendations = result.get("recommendations", [])
-            if recommendations:
-                print("Recommendations: ")
-                print("----------------------------------------------------")
-                for rec in recommendations:
-                    print_reco(rec)
+            show_recommendations = ctx.obj.resolve("recommendations")
+            if show_recommendations:
+                result = respObj.json()
+                recommendations = result.get("recommendations", [])
+                if recommendations:
+                    print("Recommendations: ")
+                    print("----------------------------------------------------")
+                    for rec in recommendations:
+                        print_reco(rec)
         else:
             write_backup = True
             errmsg = f"{time.time()} Server error accepting CLI command and outputs.  Backing up locally"

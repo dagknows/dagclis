@@ -57,7 +57,7 @@ def init(ctx: typer.Context,
     dkconfig.save()
 
 @app.command()
-def profile(ctx: typer.Context, as_json: bool=typer.Option(False, help="Control whether print as json or yaml")):
+def show(ctx: typer.Context, as_json: bool=typer.Option(False, help="Control whether print as json or yaml")):
     """ Show all defaults and environments. """
     out = {
         "curr_profile": ctx.obj.curr_profile,
@@ -70,3 +70,17 @@ def profile(ctx: typer.Context, as_json: bool=typer.Option(False, help="Control 
     else:
         import yaml
         print(yaml.dump(out, sort_keys=False))
+
+@app.command()
+def set(ctx: typer.Context, 
+        prop_name: str = typer.Argument(..., help="Name of the property to set"),
+        prop_value: str = typer.Argument(..., help="Value of the property to set")):
+    """ Set the value of a config variable for the given profile. """
+
+    allowed_props = ["recommendations", "log_requests", "log_responses"]
+    if prop_name not in allowed_props:
+        ctx.fail(f"Invalid property: {prop_name}, Allowed properties: {','. join(allowed_props)}")
+
+    value = prop_value.lower().strip() == "true"
+    ctx.obj.profile_data[prop_name] = value
+    ctx.obj.save()

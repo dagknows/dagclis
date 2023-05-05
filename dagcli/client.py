@@ -157,7 +157,7 @@ def newapi(dkconfig: "DagKnowsConfig", path, payload=None, method = ""):
         if payload: method = "post"
         else: method = "get"
     methfunc = getattr(requests, method)
-    if dkconfig.resolve("log_request") == True:
+    if dkconfig.resolve("log_requests") == True:
         print(f"API Request: {method.upper()} {url}: ", payload)
     if payload:
         if method == "get":
