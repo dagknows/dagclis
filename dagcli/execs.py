@@ -25,9 +25,12 @@ def new(ctx: typer.Context,
         "params": {},
         "node_id": node_id,
     }
-    if schedule: payload["schedule"] = json.loads(schedule)
-    if params: payload["params"] = json.loads(params)
-    if file: payload["params"] = json.load(file)
+    try:
+        if schedule: payload["schedule"] = json.loads(schedule)
+        if params: payload["params"] = json.loads(params)
+        if file: payload["params"] = json.load(file)
+    except:
+        ctx.fail("Error parsing json")
     ctx.obj.tree_transformer = lambda obj: f"Created Job: {obj['jobId']}"
     present(ctx, newapi(ctx.obj, f"/v1/dags/{dag_id}/executions", payload, "POST"))
 
