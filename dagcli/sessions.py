@@ -226,11 +226,15 @@ def start_shell(ctx: typer.Context, session_id: str):
     blobfile = ctx.obj.getpath(f"sessions/{session_id}/cliblob")
     typer.echo(f"Congratulations.  You are now recording sessions {session_id}")
     session_url = ctx.obj.profile_data["api_host"].replace("/api", f"/member?convId={session_id}")
-    print("###############################################################")
+    print("-" * 80)
     print("")
-    print(f"      DagKnows Shell Recording On: {session_url}   ")
+    print(f"      DagKnows session recording started")
+    print(f"            id: {session_id}")
+    print(f"            url: {session_url}")
     print("")
-    print("###############################################################")
+    print(f"      To join this session from another terminal, run: 'dk session join {session_id}'")
+    print("")
+    print("-" * 80)
     subprocess.run(f"script -a -q -F {blobfile}", shell=True)
     subprocess.run(f"reset")
     print(f"DagKnows Shell Recording Turned Off")
@@ -277,7 +281,7 @@ def stop(ctx: typer.Context):
                     proc.kill()
 
         os.remove(sessfile)
-        os.remove(proffile)
+        # os.remove(proffile)
         assert len(kill_later) <= 1, "Cannot be part of too many parent processes??"
         if kill_later:
             kill_later[0].kill()
