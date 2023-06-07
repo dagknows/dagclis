@@ -225,9 +225,10 @@ def start_shell(ctx: typer.Context, session_id: str):
 
     blobfile = ctx.obj.getpath(f"sessions/{session_id}/cliblob")
     typer.echo(f"Congratulations.  You are now recording sessions {session_id}")
+    session_url = ctx.obj.profile_data["api_host"].replace("/api", f"/member?convId={session_id}")
     print("###############################################################")
     print("")
-    print(f"      DagKnows Shell Recording On: {session_id}   ")
+    print(f"      DagKnows Shell Recording On: {session_url}   ")
     print("")
     print("###############################################################")
     subprocess.run(f"script -a -q -F {blobfile}", shell=True)
