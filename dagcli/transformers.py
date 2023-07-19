@@ -23,6 +23,13 @@ def node_list_transformer(nodes):
         root.add(ninfo)
     return root
 
+def task_list_transformer(tasks):
+    root = Tree("tasks")
+    for d in tasks:
+        dinfo = rich_task_info_with_exec(d)
+        root.add(dinfo)
+    return root
+
 def dag_list_transformer(dags):
     root = Tree("dags")
     for d in dags:
