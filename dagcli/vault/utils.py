@@ -30,3 +30,14 @@ def select_credlabel(ctx, cred_label=None, role=None, ensure=False):
     if ensure and not cred_label:
         ctx.fail("Cred label not provided.  Either pass it or select it")
     return cred_label
+
+def select_ip_label(ctx, ip_label=None, ensure=False):
+    if not ip_label:
+        vapi = ctx.obj.vault_api
+        all_ip_labels = vapi.list_ip_labels()
+        if not all_ip_labels:
+            ctx.fail("IP Labels do not exist.  Add one")
+        ip_label = Prompt.ask("Select an ip label", choices=all_ip_labels)
+    if ensure and not ip_label:
+        ctx.fail("IP Label not provided.  Either pass it or select it")
+    return role

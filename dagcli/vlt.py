@@ -10,8 +10,9 @@ app.add_typer(credentials.app, name="credentials", callback=ensure_mandatory)
 
 from dagcli.vault import ips
 app.add_typer(ips.app, name="ips", callback=ensure_mandatory)
-# from dagcli import iplabels
-# app.add_typer(iplabels.app, name="iplabels", callback=ensure_access_token)
+
+from dagcli.vault import users
+app.add_typer(users.app, name="users", callback=ensure_mandatory)
 # from dagcli import hostgroups
 # app.add_typer(hostgroups.app, name="hostgroups", callback=ensure_access_token)
 # from dagcli import urllabels
