@@ -4,6 +4,7 @@
 #
 #    pip-compile pyproject.toml
 #
+hvac
 boltons==23.0.0
     # via dagknows (pyproject.toml)
 certifi==2022.12.7
