@@ -1,4 +1,5 @@
 
+
 from pprint import pprint
 import typer
 import json
@@ -6,7 +7,7 @@ import os
 from enum import Enum
 from typing import List
 from rich.prompt import Prompt, Confirm
-from dagcli.vault.utils import select_role, select_credlabel, select_ip_label
+from dagcli.vault.utils import select_role, select_credlabel, select_url_label
 
 app = typer.Typer()
 
@@ -40,51 +41,34 @@ def get(ctx: typer.Context,
 
 @app.command()
 def addlabel(ctx: typer.Context,
-              ip_addr: str = typer.Argument(..., help="IP address to assign label to"),
-              label: str = typer.Argument(..., help="Label to assign to ip address")):
+             url: str = typer.Argument(..., help="URL to assign label to"),
+             label: str = typer.Argument(..., help="Label to assign to url")):
+    assert url.startswith("http://") or url.startswith("https://"), "URL MUST start with http:// or https://"
     vapi = ctx.obj.vault_api
-    vapi.add_ip_label(ip_addr, label)
-    print("Created label: ", label, " for IP address: ", ip_addr)
-
-@app.command()
-def addregex(ctx: typer.Context,
-              ip_addr: str = typer.Argument(..., help="IP address to assign label to"),
-              regex: str = typer.Argument(..., help="Label Regex to assign to ip address")):
-    vapi = ctx.obj.vault_api
-    vapi.add_ip_label_regex(ip_addr, regex)
-    print("Created regex: ", regex, " for IP address: ", ip_addr)
+    vapi.add_url_label(url, label)
+    print("Created label: ", label, " for URL: ", url)
 
 @app.command()
 def getlabel(ctx: typer.Context,
-               label: str = typer.Argument(..., help="Label to describe")):
+             label: str = typer.Argument(..., help="Label to describe")):
     """ Get infomation about a label. """
     vapi = ctx.obj.vault_api
-    label = select_ip_label(ctx, label, ensure=True)
+    label = select_url_label(ctx, label, ensure=True)
     ip_addr = vapi.get_ip_label(label)
     print("The label: ", label, " is pointing to: ", ip_addr)
 
 @app.command()
-def labels(ctx: typer.Context):
-    """ List all labels in the vault. """
+def labels(ctx: typer.Context,
+           url_labels: List[str] = typer.Argument(None, help="List of url labels to to get info about")):
+    """ List all url labels in the vault. """
     vapi = ctx.obj.vault_api
-    print("Labels: ", vapi.list_ip_labels())
-
-@app.command()
-def regexes(ctx: typer.Context):
-    """ List all label regexes in the vault. """
-    vapi = ctx.obj.vault_api
-    print("Label Regexes: ", vapi.list_ip_label_regex())
+    if not url_labels:
+        url_labels = vapi.list_url_labels()
+    return {label: vapi.get_url_label(label) for label in url_labels}
 
 @app.command()
 def deletelabel(ctx: typer.Context,
-                 label: str = typer.Argument(..., help="Label to remove")):
+                 url_label: str = typer.Argument(..., help="URL Label to remove")):
     vapi = ctx.obj.vault_api
-    vapi.delete_ip_label(label)
-    print("Deleted the label: " + label + '. The IP address is not deleted')
-
-@app.command()
-def deleteregex(ctx: typer.Context,
-                 regex: str = typer.Argument(..., help="Regex to remove")):
-    vapi = ctx.obj.vault_api
-    vapi.delete_ip_label_regex(regex)
-    print("Deleted the label regex: " + regex + '. The IP address is not deleted')
+    vapi.delete_url_label(url_label)
+    print("Deleted the label: " + url_label)
