@@ -1,13 +1,15 @@
 
 import typer
 from dagcli.vault.root import app, ensure_mandatory
-from dagcli.vault import roles
-from dagcli.vault import credentials
 
+from dagcli.vault import roles
 app.add_typer(roles.app, name="roles", callback=ensure_mandatory)
+
+from dagcli.vault import credentials
 app.add_typer(credentials.app, name="credentials", callback=ensure_mandatory)
-# from dagcli import ipaddrs
-# app.add_typer(ipaddrs.app, name="ipaddrs", callback=ensure_access_token)
+
+from dagcli.vault import ips
+app.add_typer(ips.app, name="ips", callback=ensure_mandatory)
 # from dagcli import iplabels
 # app.add_typer(iplabels.app, name="iplabels", callback=ensure_access_token)
 # from dagcli import hostgroups

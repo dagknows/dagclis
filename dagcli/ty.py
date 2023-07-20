@@ -8,7 +8,6 @@ from dagcli import sessions
 from dagcli import messages
 from dagcli import tokens
 from dagcli import proxy
-from dagcli import vault
 from dagcli import config
 
 app.add_typer(dags.app, name="dags", callback=ensure_access_token)
@@ -19,7 +18,6 @@ app.add_typer(tasks.app, name="tasks", callback=ensure_access_token)
 app.add_typer(execs.app, name="execs", callback=ensure_access_token)
 app.add_typer(tokens.app, name="tokens", callback=ensure_access_token)
 app.add_typer(proxy.app, name="proxy", callback=ensure_access_token)
-app.add_typer(vault.app, name="vault", callback=ensure_access_token)
 app.add_typer(config.app, name="config", callback=ensure_access_token)
 
 if __name__ == "__main__":
