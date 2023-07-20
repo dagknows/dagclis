@@ -16,10 +16,9 @@ app.add_typer(ips.app, name="ips", callback=ensure_mandatory)
 
 from dagcli.vault import urls
 app.add_typer(urls.app, name="urls", callback=ensure_mandatory)
-# from dagcli import hostgroups
-# app.add_typer(hostgroups.app, name="hostgroups", callback=ensure_access_token)
-# from dagcli import urllabels
-# app.add_typer(urllabels.app, name="urllabels", callback=ensure_access_token)
+
+from dagcli.vault import hostgroups
+app.add_typer(hostgroups.app, name="hostgroups", callback=ensure_mandatory)
 
 if __name__ == "__main__":
     app()
