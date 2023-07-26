@@ -39,6 +39,7 @@ dagknows_start_session_script() {
    if [ "$MYPCMD" != "script" ]; then
       dk sessions start
    else
+      echo ""
    fi
 }
 
@@ -61,7 +62,11 @@ dagknows_preexec() {
           mv $CMDFILE "${CMDFILE}.bak"
         fi
       else
-        echo "PROMPT: " "'${(%%)PS1}'" " CMD: " $1  >> $CMDFILE
+        if [ x"$SHELL" == x"/bin/bash" ]; then
+          echo "PROMPT: " "'${PS1@P}'" " CMD: " $1  >> $CMDFILE
+        else
+          echo "PROMPT: " "'${(%%)PS1}'" " CMD: " $1  >> $CMDFILE
+        fi
       fi
    fi
 }

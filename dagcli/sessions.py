@@ -1,7 +1,7 @@
 import typer
 from typing import List
 from dagcli.client import newapi
-from dagcli.utils import present, ensure_shellconfigs, print_reco
+from dagcli.utils import present, ensure_shellconfigs, print_reco, get_curr_shell
 from dagcli.transformers import *
 import subprocess, os, base64
 import requests
