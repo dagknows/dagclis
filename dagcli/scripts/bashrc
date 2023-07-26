@@ -1,5 +1,5 @@
-source bash-preexec.sh
-source dag.commonrc
+source ~/.dagknows/bash-preexec.sh
+source ~/.dagknows/dag.commonrc
 
 preexec() {
   dagknows_preexec $*

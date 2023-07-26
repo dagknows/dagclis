@@ -235,7 +235,11 @@ def start_shell(ctx: typer.Context, session_id: str):
     print(f"To join this session from another terminal, run: 'dk session join {session_id}'")
     print("")
     print("-" * 80)
-    subprocess.run(f"script -a -q -F {blobfile}", shell=True)
+    shell_type = get_curr_shell()
+    if shell_type == "bash":
+        subprocess.run(f"script -a -q -f {blobfile}", shell=True)
+    else:
+        subprocess.run(f"script -a -q -F {blobfile}", shell=True)
     subprocess.run(f"reset")
     print(f"DagKnows Shell Recording Turned Off")
 
