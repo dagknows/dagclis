@@ -51,12 +51,13 @@ def rich_task_info(task, descendants=None, show_subtasks=True, show_perms=True):
                 if rlist.get("roles", []):
                     pending.add(f"{k}: {', '.join(rlist['roles'])}")
 
-    if task["script_type"] == "python":
+    script_type = task.get("script_type", "")
+    if script_type == "python":
         codetxt = task.get("script", {}).get("code", "")
         if codetxt:
             code = treenode.add("Python")
             code.add(codetxt)
-    elif task["script_type"] == "command":
+    elif script_type == "command":
         cmds = "\n".join(task.get("commands", ""))
         if cmds:
             code = treenode.add("Commands")
