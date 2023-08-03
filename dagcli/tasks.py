@@ -8,6 +8,8 @@ from typing import List
 
 app = typer.Typer()
 
+EXAMPLE_SYNC_URL= "https://staging.dagknows.com/api/tasks/X6vuDDycnXsn3ce2WOm7"
+
 class OrderBy(str, Enum):
     RECENT = "recent"
     RECENTBUCKETS = "recentbuckets"
@@ -36,11 +38,17 @@ def get(ctx: typer.Context,
 
 @app.command()
 def sync(ctx: typer.Context,
-         source_full_url: str = typer.Argument(..., help = "Source URL to sync from"),
+         full_source_url: str = typer.Argument(..., help = f"Source URL to sync from, eg {EXAMPLE_SYNC_URL}"),
          resync: bool = typer.Option(False, help="Whether to resync if already exists")):
     """ Syncs a task from an external source. """
     ctx.obj.tree_transformer = lambda obj: rich_task_info(obj["task"], obj["descendants"])
-    import ipdb ; ipdb.set_trace()
+    parts = [p for p in full_source_url.split("/") if p]
+    if len(parts) < 4 or parts[-2] != "tasks" or parts[-3] != "api"or parts[0].lower() not in ("http:", "https:"):
+        ctx.fail(f"full_source_url needs to be of the form <scheme>://<domain>/api/tasks/<taskid>, eg: {EXAMPLE_SYNC_URL}")
+    scheme = parts[0].lower()
+    domain = parts[-4]
+    source_url = f"{scheme}//{domain}/api/tasks"
+    source_task_id = parts[-1]
     present(ctx, newapi(ctx.obj, "/tasks/sync/", {
         "source_info": {
             "source_url": source_url,
