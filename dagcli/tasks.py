@@ -60,6 +60,28 @@ def clone(ctx: typer.Context,
     present(ctx, newapi(ctx.obj, f"/tasks/{newtaskid}?recurse=true", { }, "GET"))
 
 @app.command()
+def join(ctx: typer.Context,
+         taskid: str = typer.Argument(..., help = "ID of the task to clone"),
+         roles: List[str] = typer.Argument(None, help = "List of more roles to request")):
+    """ Clones a task as a new task. """
+    all_roles = roles
+    newapi(ctx.obj, f"/tasks/{taskid}/users/join/", {"roles": all_roles}, "POST")
+
+    # Now get it again
+    ctx.obj.tree_transformer = lambda obj: rich_task_info(obj["task"], obj["descendants"])
+    present(ctx, newapi(ctx.obj, f"/tasks/{taskid}?recurse=true", { }, "GET"))
+
+
+
+
+
+
+
+
+
+
+
+@app.command()
 def create(ctx: typer.Context,
            title: str = typer.Option(..., help = "Title of the new task"),
            description: str = typer.Option("", help = "Description string for the new task"),

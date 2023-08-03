@@ -9,7 +9,7 @@ def task_list_transformer(tasks):
         root.add(tinfo)
     return root
 
-def rich_task_info(task, descendants=None):
+def rich_task_info(task, descendants=None, show_subtasks=True, show_perms=True):
     descendants = descendants or {}
     title = f"<{task['id']}>:[bold]{task['title']}[/bold]"
     treenode = Tree(title)
@@ -37,6 +37,19 @@ def rich_task_info(task, descendants=None):
     typestrs = " ===> ".join([x for x in [intype, outtype] if x])
     if len(input_params) > 0 or len(output_params) > 0:
         treenode.add("Type: " + typestrs)
+
+    if show_perms:
+        if task.get("approved_permissions", {}):
+            approved = treenode.add("Approved:")
+            for k, rlist in task.get("approved_permissions", {}).items():
+                if rlist.get("roles", []):
+                    approved.add(f"{k}: {', '.join(rlist['roles'])}")
+
+        if task.get("pending_permissions", {}):
+            pending = treenode.add("Approved:")
+            for k, rlist in task.get("pending_permissions", {}).items():
+                if rlist.get("roles", []):
+                    pending.add(f"{k}: {', '.join(rlist['roles'])}")
 
     if task["script_type"] == "python":
         codetxt = task.get("script", {}).get("code", "")
