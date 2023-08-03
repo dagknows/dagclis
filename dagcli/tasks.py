@@ -35,6 +35,31 @@ def get(ctx: typer.Context,
     present(ctx, newapi(ctx.obj, f"/tasks/{task_id}?recurse={recurse}", { }, "GET"))
 
 @app.command()
+def sync(ctx: typer.Context,
+         source_full_url: str = typer.Argument(..., help = "Source URL to sync from"),
+         resync: bool = typer.Option(False, help="Whether to resync if already exists")):
+    """ Syncs a task from an external source. """
+    ctx.obj.tree_transformer = lambda obj: rich_task_info(obj["task"], obj["descendants"])
+    import ipdb ; ipdb.set_trace()
+    present(ctx, newapi(ctx.obj, "/tasks/sync/", {
+        "source_info": {
+            "source_url": source_url,
+            "source_id": source_task_id,
+        },
+        "resync": resync,
+    }, "POST"))
+
+@app.command()
+def clone(ctx: typer.Context,
+         taskid: str = typer.Argument(..., help = "ID of the task to clone"),
+          shallow: bool = typer.Option(False, help = "Whether to do a shallow or a deep copy")):
+    """ Clones a task as a new task. """
+    ctx.obj.tree_transformer = lambda obj: rich_task_info(obj["task"], obj["descendants"])
+    result = newapi(ctx.obj, f"/tasks/{taskid}/copy/", {}, "POST")["task"]
+    newtaskid = result["id"]
+    present(ctx, newapi(ctx.obj, f"/tasks/{newtaskid}?recurse=true", { }, "GET"))
+
+@app.command()
 def create(ctx: typer.Context,
            title: str = typer.Option(..., help = "Title of the new task"),
            description: str = typer.Option("", help = "Description string for the new task"),
