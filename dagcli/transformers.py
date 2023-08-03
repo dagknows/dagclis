@@ -4,10 +4,12 @@ from rich.tree import Tree
 
 def rich_task_info(task, descendants=None):
     descendants = descendants or {}
-    title = f"[bold]{task['title']}[/bold]  -  ({task['id']})"
+    title = f"<{task['id']}>:[bold]{task['title']}[/bold]"
     treenode = Tree(title)
     intype = ""
-    for index, inparam in enumerate(task.get("input_params", [])):
+    input_params = task.get("input_params", [])
+    output_params = task.get("output_params", [])
+    for index, inparam in enumerate(input_params):
         if index > 0: intype += ", "
         else: intype += "("
         intype += f'{inparam["name"]}'
@@ -16,18 +18,17 @@ def rich_task_info(task, descendants=None):
             intype += f' = [blue]{inparam["default_value"]}[/blue]'
     if intype: intype += ")"
 
-    outtype = ""
-    if task.get("output_params", []):
-        for index, outparam in enumerate(task.get("ouptut_params", [])):
+    outtype = "("
+    if output_params:
+        for index, outparam in enumerate(output_params):
             if index > 0: outtype += ", "
-            else: outtype += "("
 
             outtype += f'{outparam["name"]}'
-            outtyp += f': [green]{outparam["param_type"]}[/green]'
-        if outtype: outtype += ")"
+            outtype += f': [green]{outparam["param_type"]}[/green]'
+    outtype += ")"
 
     typestrs = " ===> ".join([x for x in [intype, outtype] if x])
-    if typestrs:
+    if len(input_params) > 0 or len(output_params) > 0:
         treenode.add("Type: " + typestrs)
 
     if task["script_type"] == "python":
@@ -43,6 +44,7 @@ def rich_task_info(task, descendants=None):
 
     # Now subtasks
     subtasks = task.get("sub_tasks", [])
+    # import ipdb ; set_trace()
     if subtasks:
         body = treenode.add("SubTasks:")
         for stinfo in subtasks:
@@ -67,13 +69,17 @@ def rich_task_info(task, descendants=None):
 
             instr = ""
             if stintypes:
-                instr = "<" + ", ".join([ f"{v}->{k}" if k != v else f"{k}" for k,v in stintypes.items() ]) + "> ==> "
+                instr = ", ".join([ f"{k} = {v}" if k != v else f"{k}" for k,v in stintypes.items() ])
+                instr = "(" + instr + ")"
 
             outstr = ""
             if stouttypes:
-                outstr = " ==> <" + ", ".join([ f"{k}->{v}" if k != v else f"{k}" for k,v in stouttypes.items() ]) + ">"
+                outstr = ", ".join([ f"{k} -> {v}" if k != v else f"{k}" for k,v in stouttypes.items() ])
+                if len(stouttypes) > 1:
+                    outstr = "(" + outstr + ")"
+                outstr = "  ==>  " + outstr
 
-            callexpr = body.add(f"Call: {instr}{stid}{outstr}")
+            callexpr = body.add(f"Call: {stid}{instr}{outstr}")
             if descendants:
                 callexpr.add(rich_task_info(descendants[stinfo["taskid"]]))
         
