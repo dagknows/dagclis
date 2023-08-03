@@ -29,6 +29,13 @@ def list(ctx: typer.Context,
     present(ctx, newapi(ctx.obj, f"/tasks/?q={query}&userid={userid}&with_pending_perms={with_pending_perms}&tags={tags}&order_by={order_by}&collaborator={collaborator}", { }, "GET"))
 
 @app.command()
+def gen(ctx: typer.Context,
+        query: str = typer.Argument(..., help = f"Query to create a task with GenAI")):
+    """ Syncs a task from an external source. """
+    ctx.obj.tree_transformer = lambda obj: rich_task_info(obj["task"], obj["descendants"])
+    present(ctx, newapi(ctx.obj, f"/tasks/gen/?q={query}", { }, "GET"))
+
+@app.command()
 def get(ctx: typer.Context,
         task_id: str = typer.Argument(None, help = "IDs of the Tasks to be fetched"),
         recurse: bool = typer.Option(True, help="Whether to recursively get task and its children")):
@@ -80,14 +87,21 @@ def join(ctx: typer.Context,
     present(ctx, newapi(ctx.obj, f"/tasks/{taskid}?recurse=true", { }, "GET"))
 
 
-
-
-
-
-
-
-
-
+@app.command()
+def run(ctx: typer.Context,
+        taskid: str = typer.Argument(..., help = "ID of the task to clone"),
+        proxy_alias: str= typer.Option("", help="Alias of the proxy to execute on", envvar="DagKnowsProxyAlias"),
+        proxy_token: str= typer.Option("", help="Token of the proxy to execute on", envvar="DagKnowsProxyToken"),
+        params: str = typer.Option(None, help = "Json dictionary of parameters"),
+        file: typer.FileText = typer.Option(None, help = "File containing a json of the parametres")):
+    job = {
+        "proxy_alias": proxy_alias,
+        "proxy_token": proxy_token,
+    }
+    job["param_values"] = {}
+    if file: payload["param_values"].update(json.load(file))
+    if params: job["param_values"].update(json.loads(params))
+    present(ctx, newapi(ctx.obj, f"/tasks/{taskid}/execute", {"job": job}, "POST"))
 
 @app.command()
 def create(ctx: typer.Context,
