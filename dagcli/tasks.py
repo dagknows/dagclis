@@ -29,8 +29,8 @@ def list(ctx: typer.Context,
     present(ctx, newapi(ctx.obj, f"/tasks/?q={query}&userid={userid}&with_pending_perms={with_pending_perms}&tags={tags}&order_by={order_by}&collaborator={collaborator}", { }, "GET"))
 
 @app.command()
-def gen(ctx: typer.Context,
-        query: str = typer.Argument(..., help = f"Query to create a task with GenAI")):
+def genai(ctx: typer.Context,
+          query: str = typer.Argument(..., help = f"Query to create a task with GenAI")):
     """ Syncs a task from an external source. """
     ctx.obj.tree_transformer = lambda obj: rich_task_info(obj["task"], obj["descendants"])
     present(ctx, newapi(ctx.obj, f"/tasks/gen/?q={query}", { }, "GET"))
