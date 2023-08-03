@@ -9,7 +9,7 @@ app = typer.Typer()
 
 @app.command()
 def init(ctx: typer.Context,
-         profile: str = typer.Option("default", help = "Name of the profie to initialize"),
+         profile: str = typer.Option(None, help = "Name of the profie to initialize.  If not specified uses default profile in DagKnowsHome/"),
          api_host: str = typer.Option(None, help='API Host to use for this profile'),
          username: str = typer.Option(None, help="Username/Email to login with if access_token not to be entered manually"),
          password: str = typer.Option(None, help="Password to login with if access_token not to be entered manually"),
@@ -22,12 +22,13 @@ def init(ctx: typer.Context,
     ensure_shellconfigs(ctx)
 
     # Enter the name of a default profile
-    dkconfig.curr_profile = profile
+    if profile:
+        dkconfig.curr_profile = profile
     profile_data = dkconfig.profile_data
 
     if not api_host:
         api_host = typer.prompt("Enter the api host to make api calls to: ", default="http://localhost:9080/api")
-        profile_data["api_host"] = api_host
+    profile_data["api_host"] = api_host
 
     if not access_token:
         from rich.prompt import Prompt, Confirm
@@ -41,11 +42,9 @@ def init(ctx: typer.Context,
             if not password:
                 password = Prompt.ask("Please enter your password: ", password=True)
             # make call and get access_token
-            payload = {"org": org,
-                       "username": username,
-                       "credentials": { "password": password }
-                       }
+            payload = {"org": org, "username": username, "credentials": { "password": password } }
             resp = newapi(ctx.obj, "/v1/users/login", payload, "POST")
+            import ipdb ; ipdb.set_trace()
             all_tokens = sorted([(v["expiry"], v,k) for k,v in resp["data"].items() if not v.get("revoked", False)])
             access_token = all_tokens[-1][2]
         else:

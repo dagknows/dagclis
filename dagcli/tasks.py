@@ -1,11 +1,37 @@
 
 import typer
+from enum import Enum
 from dagcli.client import newapi
 from dagcli.utils import present
 from dagcli.transformers import *
 from typing import List
 
 app = typer.Typer()
+
+class OrderBy(str, Enum):
+    RECENT = "recent"
+    RECENTBUCKETS = "recentbuckets"
+    MOSTVOTED = "mostvoted"
+    MOSTLINKED = "mostlinked"
+
+@app.command()
+def list(ctx: typer.Context,
+         query: str = typer.Argument("", help="Query to search for if any"),
+         userid: str = typer.Option("", help = "User to get tasks for "),
+         collaborator: str = typer.Option("", help = "Filter by collaborator id"),
+         with_pending_perms: bool = typer.Option(False, help = "Whether to filter by tasks that have pending perms."),
+         order_by: OrderBy = typer.Option(OrderBy.RECENT, help = "Order by criteria"),
+         tags: str = typer.Option("", help="Comma separated list of tags to search by.  Only 1 supported now")):
+    if with_pending_perms: userid = "me"
+    present(ctx, newapi(ctx.obj, f"/tasks/?q={query}&userid={userid}&with_pending_perms={with_pending_perms}&tags={tags}&order_by={order_by}&collaborator={collaborator}", { }, "GET"))
+
+@app.command()
+def get(ctx: typer.Context,
+        task_id: str = typer.Argument(None, help = "IDs of the Tasks to be fetched"),
+        recurse: bool = typer.Option(True, help="Whether to recursively get task and its children")):
+    """ Gets one or more tasks given IDs.  If no IDs are specified then a list of all tasks is done.  Otherwise for each Task ID provided its info is fetched. """
+    ctx.obj.tree_transformer = lambda obj: rich_task_info(obj["task"], obj["descendants"])
+    present(ctx, newapi(ctx.obj, f"/tasks/{task_id}?recurse={recurse}", { }, "GET"))
 
 @app.command()
 def create(ctx: typer.Context,
@@ -21,32 +47,12 @@ def create(ctx: typer.Context,
     }, "POST"))
 
 @app.command()
-def delete(ctx: typer.Context, task_ids: List[str] = typer.Argument(..., help = "List of ID of the Tasks to be deleted")):
+def delete(ctx: typer.Context,
+           task_ids: List[str] = typer.Argument(..., help = "List of ID of the Tasks to be deleted"),
+           recurse: bool = typer.Option(False, help="Whether to recursively delete task and its children")):
     """ Delete all tasks with the given IDs. """
     for taskid in task_ids:
-        present(ctx, newapi(ctx.obj, f"/v1/tasks/{taskid}", None, "DELETE"))
-
-@app.command()
-def get(ctx: typer.Context,
-        task_ids: List[str] = typer.Argument(None, help = "IDs of the Tasks to be fetched")):
-    """ Gets one or more tasks given IDs.  If no IDs are specified then a list of all tasks is done.  Otherwise for each Task ID provided its info is fetched. """
-    if not task_ids:
-        ctx.obj.tree_transformer = lambda obj: task_list_transformer(obj["tasks"])
-        present(ctx, newapi(ctx.obj, "/v1/tasks", { }, "GET"))
-    elif len(task_ids) == 1:
-        ctx.obj.tree_transformer = lambda obj: rich_task_info_with_exec(obj["task"])
-        present(ctx, newapi(ctx.obj, f"/v1/tasks/{task_ids[0]}", { }, "GET"))
-    else:
-        ctx.obj.tree_transformer = lambda obj: task_list_transformer(obj["tasks"].values())
-        present(ctx, newapi(ctx.obj, "/v1/tasks:batchGet", { "ids": task_ids }, "GET"))
-
-@app.command()
-def search(ctx: typer.Context, title: str = typer.Option("", help = "Title to search for Tasks by")):
-    """ Searches for tasks by a given title. """
-    ctx.obj.tree_transformer = lambda obj: task_list_transformer(obj["tasks"])
-    present(ctx, newapi(ctx.obj, "/v1/tasks", {
-        "title": title,
-    }, "GET"))
+        present(ctx, newapi(ctx.obj, f"/tasks/{taskid}?recurse={recurse}", None, "DELETE"))
 
 @app.command()
 def modify(ctx: typer.Context, task_id: str = typer.Argument(..., help = "ID of the task to be updated"),
