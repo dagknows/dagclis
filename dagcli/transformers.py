@@ -2,6 +2,13 @@ import json
 from collections import defaultdict
 from rich.tree import Tree
 
+def task_list_transformer(tasks):
+    root = Tree("tasks")
+    for t in tasks:
+        tinfo = rich_task_info(t)
+        root.add(tinfo)
+    return root
+
 def rich_task_info(task, descendants=None):
     descendants = descendants or {}
     title = f"<{task['id']}>:[bold]{task['title']}[/bold]"
@@ -53,7 +60,7 @@ def rich_task_info(task, descendants=None):
 
             stintypes = {}
             stouttypes = {}
-            if not descendants:
+            if descendants:
                 subtask = descendants[stid]
                 for index, inparam in enumerate(subtask.get("input_params", [])):
                     stintypes[inparam["name"]] = inparam["name"]
@@ -104,13 +111,6 @@ def node_list_transformer(nodes):
     for n in nodes:
         ninfo = node_info_transformer(n)
         root.add(ninfo)
-    return root
-
-def task_list_transformer(tasks):
-    root = Tree("tasks")
-    for d in tasks:
-        dinfo = rich_task_info_with_exec(d)
-        root.add(dinfo)
     return root
 
 def dag_list_transformer(dags):

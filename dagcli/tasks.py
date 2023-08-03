@@ -23,6 +23,7 @@ def list(ctx: typer.Context,
          order_by: OrderBy = typer.Option(OrderBy.RECENT, help = "Order by criteria"),
          tags: str = typer.Option("", help="Comma separated list of tags to search by.  Only 1 supported now")):
     if with_pending_perms: userid = "me"
+    ctx.obj.tree_transformer = lambda obj: task_list_transformer(obj["tasks"])
     present(ctx, newapi(ctx.obj, f"/tasks/?q={query}&userid={userid}&with_pending_perms={with_pending_perms}&tags={tags}&order_by={order_by}&collaborator={collaborator}", { }, "GET"))
 
 @app.command()
