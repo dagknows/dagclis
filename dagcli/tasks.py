@@ -17,13 +17,13 @@ class OrderBy(str, Enum):
     MOSTLINKED = "mostlinked"
 
 @app.command()
-def list(ctx: typer.Context,
-         query: str = typer.Argument("", help="Query to search for if any"),
-         userid: str = typer.Option("", help = "User to get tasks for "),
-         collaborator: str = typer.Option("", help = "Filter by collaborator id"),
-         with_pending_perms: bool = typer.Option(False, help = "Whether to filter by tasks that have pending perms."),
-         order_by: OrderBy = typer.Option(OrderBy.RECENT, help = "Order by criteria"),
-         tags: str = typer.Option("", help="Comma separated list of tags to search by.  Only 1 supported now")):
+def search(ctx: typer.Context,
+           query: str = typer.Argument("", help="Query to search for if any"),
+           userid: str = typer.Option("", help = "User to get tasks for "),
+           collaborator: str = typer.Option("", help = "Filter by collaborator id"),
+           with_pending_perms: bool = typer.Option(False, help = "Whether to filter by tasks that have pending perms."),
+           order_by: OrderBy = typer.Option(OrderBy.RECENT, help = "Order by criteria"),
+           tags: str = typer.Option("", help="Comma separated list of tags to search by.  Only 1 supported now")):
     if with_pending_perms: userid = "me"
     ctx.obj.tree_transformer = lambda obj: task_list_transformer(obj["tasks"])
     present(ctx, newapi(ctx.obj, f"/tasks/?q={query}&userid={userid}&with_pending_perms={with_pending_perms}&tags={tags}&order_by={order_by}&collaborator={collaborator}", { }, "GET"))
@@ -104,6 +104,56 @@ def run(ctx: typer.Context,
     present(ctx, newapi(ctx.obj, f"/tasks/{taskid}/execute", {"job": job}, "POST"))
 
 @app.command()
+def delete(ctx: typer.Context,
+           task_ids: List[str] = typer.Argument(..., help = "List of ID of the Tasks to be deleted"),
+           recurse: bool = typer.Option(False, help="Whether to recursively delete task and its children")):
+    """ Delete all tasks with the given IDs. """
+    for taskid in task_ids:
+        present(ctx, newapi(ctx.obj, f"/tasks/{taskid}?recurse={recurse}", None, "DELETE"))
+
+@app.command()
+def addperms(ctx: typer.Context, 
+             task_id: str = typer.Argument(..., help = "Task ID where user permissions are to be added"),
+             perms: List[str] = typer.Argument(..., help = "User perms of the form userid:perm1,perm2,..permN")):
+    """ Adds permissions for users on a particular task.  Each permission is of the form:
+
+        userid=perm1,perm2,perm3,....,permN
+    """
+    payload = {}
+    for perm in perms:
+        userid,roles = perm.split("=")
+        roles = [r.strip() for r in roles.split(",") if r.strip()]
+        if userid not in payload:
+            payload[userid] = {"roles": []}
+        payload[userid]["roles"] = list(set(roles + payload[userid]["roles"]))
+
+    result = newapi(ctx.obj, f"/tasks/{task_id}/users", { "added_permissions": payload }, "PUT")
+    task = newapi(ctx.obj, f"/tasks/{task_id}")
+    ctx.obj.tree_transformer = lambda obj: rich_task_info(obj["task"])
+    present(ctx, task)
+
+@app.command()
+def removeperms(ctx: typer.Context, 
+                task_id: str = typer.Argument(..., help = "Task ID where user permissions are to be removed"),
+                perms: List[str] = typer.Argument(..., help = "User perms of the form userid:perm1,perm2,..permN")):
+    """ Removes user permissions form a task.  Each permission is of the form:
+
+        userid=perm1,perm2,perm3,....,permN
+    """
+    payload = {}
+    for perm in perms:
+        userid,roles = perm.split("=")
+        roles = [r.strip() for r in roles.split(",") if r.strip()]
+        if userid not in payload:
+            payload[userid] = {"roles": []}
+        payload[userid]["roles"] = list(set(roles + payload[userid]["roles"]))
+
+    result = newapi(ctx.obj, f"/tasks/{task_id}/users", { "removed_permissions": payload }, "PUT")
+    task = newapi(ctx.obj, f"/tasks/{task_id}")
+    ctx.obj.tree_transformer = lambda obj: rich_task_info(obj["task"])
+    present(ctx, task)
+
+@app.command()
 def create(ctx: typer.Context,
            title: str = typer.Option(..., help = "Title of the new task"),
            description: str = typer.Option("", help = "Description string for the new task"),
@@ -115,14 +165,6 @@ def create(ctx: typer.Context,
         "title": title,
         "description": description,
     }, "POST"))
-
-@app.command()
-def delete(ctx: typer.Context,
-           task_ids: List[str] = typer.Argument(..., help = "List of ID of the Tasks to be deleted"),
-           recurse: bool = typer.Option(False, help="Whether to recursively delete task and its children")):
-    """ Delete all tasks with the given IDs. """
-    for taskid in task_ids:
-        present(ctx, newapi(ctx.obj, f"/tasks/{taskid}?recurse={recurse}", None, "DELETE"))
 
 @app.command()
 def modify(ctx: typer.Context, task_id: str = typer.Argument(..., help = "ID of the task to be updated"),
@@ -137,70 +179,7 @@ def modify(ctx: typer.Context, task_id: str = typer.Argument(..., help = "ID of 
     if description: 
         update_mask.append("description")
         params["description"] = description
-    present(ctx, newapi(ctx.obj, f"/v1/tasks/{task_id}", {
+    present(ctx, newapi(ctx.obj, f"/tasks/{task_id}", {
         "task": params,
         "update_mask": ",".join(update_mask),
     }, "PATCH"))
-
-@app.command()
-def add_nodes(ctx: typer.Context, 
-              task_id: str = typer.Option(..., help = "Task ID to remove nodes from"),
-              node_ids: List[str] = typer.Option(..., help = "First NodeID to add to the Task"),
-              nodeids: List[str] = typer.Argument(None, help = "List of more Node IDs to add to the Task")):
-    """ Adds nodes (by node IDs) to a Task.  If a node already exists it is ignored. """
-    all_node_ids = node_ids + nodeids
-    if all_node_ids:
-        result = newapi(ctx.obj, f"/v1/tasks/{task_id}", {
-            "add_nodes": all_node_ids,
-        }, "PATCH")
-        task = newapi(ctx.obj, f"/v1/tasks/{task_id}")
-        ctx.obj.tree_transformer = lambda obj: task_info_with_exec(obj["task"])
-        present(ctx, task)
-
-@app.command()
-def remove_nodes(ctx: typer.Context, 
-                 task_id: str = typer.Option(..., help = "Task ID to remove nodes from"),
-                 node_ids: List[str] = typer.Option(..., help = "First NodeID to remove from the Task"),
-                 nodeids: List[str] = typer.Argument(..., help = "List of more Node IDs to remove from the Task")):
-    """ Removes nodes from a Task.  When a node is removed, its child nodes are also removed. """
-    nodeids = [n for n in nodeids if n.strip()]
-    all_node_ids = node_ids + nodeids
-    if all_node_ids:
-        newapi(ctx.obj, f"/v1/tasks/{task_id}", {
-            "remove_nodes": all_node_ids,
-        }, "PATCH")
-        task = newapi(ctx.obj, f"/v1/tasks/{task_id}")
-        ctx.obj.tree_transformer = lambda obj: task_info_with_exec(obj["task"])
-        present(ctx, task)
-
-@app.command()
-def connect(ctx: typer.Context,
-            task_id: str = typer.Option(..., help = "Task ID to add a new edge in"),
-            src_node_id: str = typer.Option(..., help = "Source node ID to start connection from"),
-            dest_node_id: str = typer.Option(..., help = "Destination node ID to add connection to")):
-    """ Connect src_node_id to dest_node_id creating an edge between them in the given Task.  If adding an edge results in cycles, the request will fail. """
-    result = newapi(ctx.obj, f"/v1/nodes/{src_node_id}", {
-        "node": {
-            "task_id": task_id,
-        },
-        "add_nodes": [ dest_node_id ]
-    }, "PATCH")
-    task = newapi(ctx.obj, f"/v1/tasks/{task_id}")
-    ctx.obj.tree_transformer = lambda obj: task_info_with_exec(obj["task"])
-    present(ctx, task)
-
-@app.command()
-def disconnect(ctx: typer.Context,
-            task_id: str = typer.Option(..., help = "Task ID to remove an new edge from"),
-            src_node_id: str = typer.Option(..., help = "Source node ID to remove connection from"),
-            dest_node_id: str = typer.Option(..., help = "Destination node ID to remove connection in")):
-    """ Removes the edge between src_node_id and dest_node_id in the given Task """
-    newapi(ctx.obj, f"/v1/nodes/{src_node_id}", {
-        "node": {
-            "task_id": task_id,
-        },
-        "remove_nodes": [ dest_node_id ]
-    }, "PATCH")
-    task = newapi(ctx.obj, f"/v1/tasks/{task_id}")
-    ctx.obj.tree_transformer = lambda obj: task_info_with_exec(obj["task"])
-    present(ctx, task)
