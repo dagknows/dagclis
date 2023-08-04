@@ -31,5 +31,5 @@ def ensure_mandatory(ctx: typer.Context):
 def reloadpkey(ctx: typer.Context,
                pkeypath: typer.FileText= typer.Option("src/keys/public_key.pem", help = "Path of the public_key.pem to configure vault with")):
     vapi = ctx.obj.vault_api
-    pkey = open(pkeypath.read())
+    pkey = pkeypath.read()
     vapi.set_jwt_auth_key(pkey)
