@@ -114,17 +114,19 @@ def delete(ctx: typer.Context,
 @app.command()
 def removeusers(ctx: typer.Context, 
              task_id: str = typer.Argument(..., help = "Task ID where user permissions are to be added"),
-             userids: List[str] = typer.Argument(..., help = "List of userids to remove from a task")):
+             userids: List[str] = typer.Argument(..., help = "List of userids to remove from a task"),
+             recursive: bool = typer.Option(True, help = "Whether to apply recursively to all owned subtasks")):
     """ Remove users from being collaborators in a task.  All their pending and approved permissions are removed. """
-    result = newapi(ctx.obj, f"/tasks/{task_id}/users", { "removed_users": userids }, "PUT")
-    task = newapi(ctx.obj, f"/tasks/{task_id}")
-    ctx.obj.tree_transformer = lambda obj: rich_task_info(obj["task"])
+    result = newapi(ctx.obj, f"/tasks/{task_id}/users", { "removed_users": userids, "recursive": recursive }, "PUT")
+    task = newapi(ctx.obj, f"/tasks/{task_id}?recurse=true")
+    ctx.obj.tree_transformer = lambda obj: rich_task_info(obj["task"], obj.get("descendants", {}))
     present(ctx, task)
 
 @app.command()
 def addperms(ctx: typer.Context, 
              task_id: str = typer.Argument(..., help = "Task ID where user permissions are to be added"),
-             perms: List[str] = typer.Argument(..., help = "User perms of the form userid:perm1,perm2,..permN")):
+             perms: List[str] = typer.Argument(..., help = "User perms of the form userid:perm1,perm2,..permN"),
+             recursive: bool = typer.Option(True, help = "Whether to apply recursively to all owned subtasks")):
     """ Adds permissions for users on a particular task.  Each permission is of the form:
 
         userid=perm1,perm2,perm3,....,permN
@@ -137,15 +139,16 @@ def addperms(ctx: typer.Context,
             payload[userid] = {"roles": []}
         payload[userid]["roles"] = list(set(roles + payload[userid]["roles"]))
 
-    result = newapi(ctx.obj, f"/tasks/{task_id}/users", { "added_permissions": payload }, "PUT")
-    task = newapi(ctx.obj, f"/tasks/{task_id}")
-    ctx.obj.tree_transformer = lambda obj: rich_task_info(obj["task"])
+    result = newapi(ctx.obj, f"/tasks/{task_id}/users", { "added_permissions": payload, "recursive": recursive }, "PUT")
+    task = newapi(ctx.obj, f"/tasks/{task_id}?recurse=true")
+    ctx.obj.tree_transformer = lambda obj: rich_task_info(obj["task"], obj.get("descendants", {}))
     present(ctx, task)
 
 @app.command()
 def removeperms(ctx: typer.Context, 
                 task_id: str = typer.Argument(..., help = "Task ID where user permissions are to be removed"),
-                perms: List[str] = typer.Argument(..., help = "User perms of the form userid:perm1,perm2,..permN")):
+                perms: List[str] = typer.Argument(..., help = "User perms of the form userid:perm1,perm2,..permN"),
+                recursive: bool = typer.Option(True, help = "Whether to apply recursively to all owned subtasks")):
     """ Removes user permissions form a task.  Each permission is of the form:
 
         userid=perm1,perm2,perm3,....,permN
@@ -158,9 +161,9 @@ def removeperms(ctx: typer.Context,
             payload[userid] = {"roles": []}
         payload[userid]["roles"] = list(set(roles + payload[userid]["roles"]))
 
-    result = newapi(ctx.obj, f"/tasks/{task_id}/users", { "removed_permissions": payload }, "PUT")
-    task = newapi(ctx.obj, f"/tasks/{task_id}")
-    ctx.obj.tree_transformer = lambda obj: rich_task_info(obj["task"])
+    result = newapi(ctx.obj, f"/tasks/{task_id}/users", { "removed_permissions": payload, "recursive": recursive }, "PUT")
+    task = newapi(ctx.obj, f"/tasks/{task_id}?recurse=true")
+    ctx.obj.tree_transformer = lambda obj: rich_task_info(obj["task"], obj.get("descendants", {}))
     present(ctx, task)
 
 @app.command()

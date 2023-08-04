@@ -26,3 +26,10 @@ def ensure_mandatory(ctx: typer.Context):
         print("Command: ", ctx.command_path)
         ctx.fail(f"Vault command params missing")
 
+
+@app.command()
+def reloadpkey(ctx: typer.Context,
+               pkeypath: typer.FileText= typer.Option("src/keys/public_key.pem", help = "Path of the public_key.pem to configure vault with")):
+    vapi = ctx.obj.vault_api
+    pkey = open(pkeypath.read())
+    vapi.set_jwt_auth_key(pkey)
