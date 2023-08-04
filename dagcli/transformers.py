@@ -98,9 +98,9 @@ def rich_task_info(task, descendants=None, show_subtasks=True, show_perms=True):
                 outstr = ", ".join([ f"{k} -> {v}" if k != v else f"{k}" for k,v in stouttypes.items() ])
                 if len(stouttypes) > 1:
                     outstr = "(" + outstr + ")"
-                outstr = "  ==>  " + outstr
+                outstr = outstr + "   <===    "
 
-            callexpr = body.add(f"Call: {stid}{instr}{outstr}")
+            callexpr = body.add(f"{outstr}{stid}{instr}")
             if descendants:
                 callexpr.add(rich_task_info(descendants[stinfo["taskid"]]))
         
