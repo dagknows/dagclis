@@ -112,6 +112,16 @@ def delete(ctx: typer.Context,
         present(ctx, newapi(ctx.obj, f"/tasks/{taskid}?recurse={recurse}", None, "DELETE"))
 
 @app.command()
+def removeusers(ctx: typer.Context, 
+             task_id: str = typer.Argument(..., help = "Task ID where user permissions are to be added"),
+             userids: List[str] = typer.Argument(..., help = "List of userids to remove from a task")):
+    """ Remove users from being collaborators in a task.  All their pending and approved permissions are removed. """
+    result = newapi(ctx.obj, f"/tasks/{task_id}/users", { "removed_users": userids }, "PUT")
+    task = newapi(ctx.obj, f"/tasks/{task_id}")
+    ctx.obj.tree_transformer = lambda obj: rich_task_info(obj["task"])
+    present(ctx, task)
+
+@app.command()
 def addperms(ctx: typer.Context, 
              task_id: str = typer.Argument(..., help = "Task ID where user permissions are to be added"),
              perms: List[str] = typer.Argument(..., help = "User perms of the form userid:perm1,perm2,..permN")):
