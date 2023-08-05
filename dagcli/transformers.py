@@ -14,6 +14,8 @@ def rich_task_info(task, descendants=None, show_subtasks=True, show_perms=True):
     title = f"<{task['id']}>:[bold]{task['title']}[/bold]"
     treenode = Tree(title)
     intype = ""
+    if task.get("description", ""):
+        treenode.add(f"Description: {task['description']}")
     input_params = task.get("input_params", [])
     output_params = task.get("output_params", [])
     for index, inparam in enumerate(input_params):
