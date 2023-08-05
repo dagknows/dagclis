@@ -104,7 +104,7 @@ def rich_task_info(task, descendants=None, show_subtasks=True, show_perms=True):
 
             callexpr = body.add(f"{outstr}{stid}{instr}")
             if descendants:
-                callexpr.add(rich_task_info(descendants[stinfo["taskid"]]))
+                callexpr.add(rich_task_info(descendants[stinfo["taskid"]], descendants))
         
     return treenode
 
