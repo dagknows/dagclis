@@ -224,7 +224,8 @@ def start_shell(ctx: typer.Context, session_id: str):
         currsessfile.write(session_id)
 
     blobfile = ctx.obj.getpath(f"sessions/{session_id}/cliblob")
-    session_url = ctx.obj.profile_data["api_host"].replace("/api", f"/member?convId={session_id}")
+    # session_url = ctx.obj.profile_data["api_host"].replace("/api", f"/member?convId={session_id}")
+    session_url = ctx.obj.profile_data["api_host"].replace("/api", f"/cli-sessions/{session_id}")
     print("-" * 80)
     print("")
     print(f"DagKnows session recording started")
