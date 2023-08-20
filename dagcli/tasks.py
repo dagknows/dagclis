@@ -170,22 +170,38 @@ def removeperms(ctx: typer.Context,
 def create(ctx: typer.Context,
            title: str = typer.Option(..., help = "Title of the new task"),
            description: str = typer.Option("", help = "Description string for the new task"),
-           input_params: str = typer.Option("", help = """Input params and their default values in the form a=1,b="x",c=True,d,e=None""")
-           ):
+           tags: str = typer.Option("", help = "Comma separated list of tags, eg 'java,frontend,kubernetes'"),
+           file: typer.FileText = typer.Option(None, help = "File containing more task parameters")
+       ):
     """ Creates a new task with the given title and description. """
     ctx.obj.tree_transformer = lambda obj: task_info_with_exec(obj["task"])
-    present(ctx, newapi(ctx.obj, "/tasks", {
-        "title": title,
-        "description": description,
-    }, "POST"))
+    task_params = {}
+    if file: task_params.update(json.load(file))
+    if title: task_params["title"] = title
+    if description: task_params["description"] = description
+    if tags: task_params["tags"] = tags
+    newtask = newapi(ctx.obj, "/tasks", task_params, "POST")
+    present(ctx, newtask)
 
 @app.command()
 def modify(ctx: typer.Context, task_id: str = typer.Argument(..., help = "ID of the task to be updated"),
            title: str = typer.Option(None, help="New title to be set for the Task"),
-           description: str = typer.Option(None, help="New description to be set for the Task")):
+           description: str = typer.Option(None, help="New description to be set for the Task"),
+           file: typer.FileText = typer.Option(None, help = "File containing more task parameters update")
+        ):
     """ Modifies the title or description of a Task. """
     update_mask = []
     params = {}
+    sub_task_ops = []
+    if file:
+        contents = json.load(file)
+        for k,v in contents.items():
+            if k == "sub_task_ops":
+                # we have subtask ops
+                sub_task_ops = v
+            else:
+                params[k] = v
+                update_mask.append(k)
     if title: 
         update_mask.append("title")
         params["title"] = title
@@ -195,4 +211,5 @@ def modify(ctx: typer.Context, task_id: str = typer.Argument(..., help = "ID of 
     present(ctx, newapi(ctx.obj, f"/tasks/{task_id}", {
         "task": params,
         "update_mask": ",".join(update_mask),
+        "sub_task_ops": sub_task_ops ,
     }, "PATCH"))
