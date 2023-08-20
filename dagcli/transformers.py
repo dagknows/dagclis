@@ -22,7 +22,8 @@ def rich_task_info(task, descendants=None, show_subtasks=True, show_perms=True):
         if index > 0: intype += ", "
         else: intype += "("
         intype += f'{inparam["name"]}'
-        intype += f': [green]{inparam["param_type"]}[/green]'
+        if inparam.get("param_type", ""):
+            intype += f': [green]{inparam["param_type"]}[/green]'
         if inparam.get("default_value", ""):
             intype += f' = [blue]{inparam["default_value"]}[/blue]'
     if intype: intype += ")"
@@ -33,7 +34,8 @@ def rich_task_info(task, descendants=None, show_subtasks=True, show_perms=True):
             if index > 0: outtype += ", "
 
             outtype += f'{outparam["name"]}'
-            outtype += f': [green]{outparam["param_type"]}[/green]'
+            if outparam.get("param_type", ""):
+                outtype += f': [green]{outparam["param_type"]}[/green]'
     outtype += ")"
 
     typestrs = " ===> ".join([x for x in [intype, outtype] if x])
