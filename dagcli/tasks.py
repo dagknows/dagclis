@@ -174,13 +174,13 @@ def create(ctx: typer.Context,
            file: typer.FileText = typer.Option(None, help = "File containing more task parameters")
        ):
     """ Creates a new task with the given title and description. """
-    ctx.obj.tree_transformer = lambda obj: task_info_with_exec(obj["task"])
+    ctx.obj.tree_transformer = lambda obj: rich_task_info(obj["task"])
     task_params = {}
     if file: task_params.update(json.load(file))
     if title: task_params["title"] = title
     if description: task_params["description"] = description
-    if tags: task_params["tags"] = tags
-    newtask = newapi(ctx.obj, "/tasks", task_params, "POST")
+    if tags: task_params["tags"] = tags.split(",")
+    newtask = newapi(ctx.obj, "/tasks/", {"task": task_params}, "POST")
     present(ctx, newtask)
 
 @app.command()
