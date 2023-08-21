@@ -24,6 +24,7 @@ def search(ctx: typer.Context,
            with_pending_perms: bool = typer.Option(False, help = "Whether to filter by tasks that have pending perms."),
            order_by: OrderBy = typer.Option(OrderBy.RECENT, help = "Order by criteria"),
            tags: str = typer.Option("", help="Comma separated list of tags to search by.  Only 1 supported now")):
+    """Search for tasks."""
     if with_pending_perms: userid = "me"
     ctx.obj.tree_transformer = lambda obj: task_list_transformer(obj["tasks"])
     present(ctx, newapi(ctx.obj, f"/tasks/?q={query}&userid={userid}&with_pending_perms={with_pending_perms}&tags={tags}&order_by={order_by}&collaborator={collaborator}", { }, "GET"))
@@ -31,7 +32,7 @@ def search(ctx: typer.Context,
 @app.command()
 def genai(ctx: typer.Context,
           query: str = typer.Argument(..., help = f"Query to create a task with GenAI")):
-    """ Syncs a task from an external source. """
+    """ Generate a Task with AI. """
     ctx.obj.tree_transformer = lambda obj: rich_task_info(obj["task"], obj["descendants"])
     present(ctx, newapi(ctx.obj, f"/tasks/gen/?q={query}", { }, "GET"))
 
@@ -39,7 +40,7 @@ def genai(ctx: typer.Context,
 def get(ctx: typer.Context,
         task_id: str = typer.Argument(None, help = "IDs of the Tasks to be fetched"),
         recurse: bool = typer.Option(True, help="Whether to recursively get task and its children")):
-    """ Gets one or more tasks given IDs.  If no IDs are specified then a list of all tasks is done.  Otherwise for each Task ID provided its info is fetched. """
+    """ Gets one or more tasks given IDs.  If no IDs are specified then a list of all tasks are returned."""
     ctx.obj.tree_transformer = lambda obj: rich_task_info(obj["task"], obj["descendants"])
     present(ctx, newapi(ctx.obj, f"/tasks/{task_id}?recurse={recurse}", { }, "GET"))
 
@@ -66,9 +67,9 @@ def sync(ctx: typer.Context,
 
 @app.command()
 def clone(ctx: typer.Context,
-         taskid: str = typer.Argument(..., help = "ID of the task to clone"),
+          taskid: str = typer.Argument(..., help = "ID of the task to clone"),
           shallow: bool = typer.Option(False, help = "Whether to do a shallow or a deep copy")):
-    """ Clones a task as a new task. """
+    """ Clones a task into a new task. """
     ctx.obj.tree_transformer = lambda obj: rich_task_info(obj["task"], obj["descendants"])
     result = newapi(ctx.obj, f"/tasks/{taskid}/copy/", {}, "POST")["task"]
     newtaskid = result["id"]
@@ -78,7 +79,7 @@ def clone(ctx: typer.Context,
 def join(ctx: typer.Context,
          taskid: str = typer.Argument(..., help = "ID of the task to clone"),
          roles: List[str] = typer.Argument(None, help = "List of more roles to request")):
-    """ Clones a task as a new task. """
+    """ Request to a join a task as a collaborator. """
     all_roles = roles
     newapi(ctx.obj, f"/tasks/{taskid}/users/join/", {"roles": all_roles}, "POST")
 
@@ -94,6 +95,7 @@ def run(ctx: typer.Context,
         proxy_token: str= typer.Option("", help="Token of the proxy to execute on", envvar="DagKnowsProxyToken"),
         params: str = typer.Option(None, help = "Json dictionary of parameters"),
         file: typer.FileText = typer.Option(None, help = "File containing a json of the parametres")):
+    """ Execute a task. """
     job = {
         "proxy_alias": proxy_alias,
         "proxy_token": proxy_token,
@@ -116,7 +118,7 @@ def removeusers(ctx: typer.Context,
              task_id: str = typer.Argument(..., help = "Task ID where user permissions are to be added"),
              userids: List[str] = typer.Argument(..., help = "List of userids to remove from a task"),
              recursive: bool = typer.Option(True, help = "Whether to apply recursively to all owned subtasks")):
-    """ Remove users from being collaborators in a task.  All their pending and approved permissions are removed. """
+    """ Remove users from being collaborators on a task.  All their pending and approved permissions are removed. """
     result = newapi(ctx.obj, f"/tasks/{task_id}/users", { "removed_users": userids, "recursive": recursive }, "PUT")
     task = newapi(ctx.obj, f"/tasks/{task_id}?recurse=true")
     ctx.obj.tree_transformer = lambda obj: rich_task_info(obj["task"], obj.get("descendants", {}))
@@ -173,7 +175,7 @@ def create(ctx: typer.Context,
            tags: str = typer.Option("", help = "Comma separated list of tags, eg 'java,frontend,kubernetes'"),
            file: typer.FileText = typer.Option(None, help = "File containing more task parameters")
        ):
-    """ Creates a new task with the given title and description. """
+    """ Creates a new task with the given title, description and other parameters from a file. """
     ctx.obj.tree_transformer = lambda obj: rich_task_info(obj["task"])
     task_params = {}
     if file: task_params.update(json.load(file))
@@ -189,7 +191,7 @@ def update(ctx: typer.Context, task_id: str = typer.Argument(..., help = "ID of 
            description: str = typer.Option(None, help="New description to be set for the Task"),
            file: typer.FileText = typer.Option(None, help = "File containing more task parameters update")
         ):
-    """ Modifies the title or description of a Task. """
+    """ Update a task. """
     ctx.obj.tree_transformer = lambda obj: rich_task_info(obj["task"])
     update_mask = []
     params = {}
