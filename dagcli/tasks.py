@@ -184,12 +184,13 @@ def create(ctx: typer.Context,
     present(ctx, newtask)
 
 @app.command()
-def modify(ctx: typer.Context, task_id: str = typer.Argument(..., help = "ID of the task to be updated"),
+def update(ctx: typer.Context, task_id: str = typer.Argument(..., help = "ID of the task to be updated"),
            title: str = typer.Option(None, help="New title to be set for the Task"),
            description: str = typer.Option(None, help="New description to be set for the Task"),
            file: typer.FileText = typer.Option(None, help = "File containing more task parameters update")
         ):
     """ Modifies the title or description of a Task. """
+    ctx.obj.tree_transformer = lambda obj: rich_task_info(obj["task"])
     update_mask = []
     params = {}
     sub_task_ops = []
@@ -208,8 +209,10 @@ def modify(ctx: typer.Context, task_id: str = typer.Argument(..., help = "ID of 
     if description: 
         update_mask.append("description")
         params["description"] = description
-    present(ctx, newapi(ctx.obj, f"/tasks/{task_id}", {
+    payload = {
         "task": params,
-        "update_mask": ",".join(update_mask),
+        "update_mask": update_mask,
         "sub_task_ops": sub_task_ops ,
-    }, "PATCH"))
+    }
+    resp = newapi(ctx.obj, f"/tasks/{task_id}", payload, "PATCH")
+    present(ctx, resp)
