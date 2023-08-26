@@ -285,7 +285,6 @@ def stop(ctx: typer.Context):
                     parent = proc.parent()
                     proc.kill()
 
-        import ipdb ; ipdb.set_trace()
         os.remove(sessfile)
         # os.remove(proffile)
         assert len(kill_later) <= 1, "Cannot be part of too many parent processes??"
