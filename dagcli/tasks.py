@@ -172,6 +172,7 @@ def removeperms(ctx: typer.Context,
 def create(ctx: typer.Context,
            title: str = typer.Option(..., help = "Title of the new task"),
            description: str = typer.Option("", help = "Description string for the new task"),
+           customid: str = typer.Option("", help = "A custom ID to assign instead of a randomly generated one"),
            tags: str = typer.Option("", help = "Comma separated list of tags, eg 'java,frontend,kubernetes'"),
            file: typer.FileText = typer.Option(None, help = "File containing more task parameters")
        ):
@@ -182,6 +183,7 @@ def create(ctx: typer.Context,
     if title: task_params["title"] = title
     if description: task_params["description"] = description
     if tags: task_params["tags"] = tags.split(",")
+    if customid.strip(): task_params["id"] = customid.strip()
     newtask = newapi(ctx.obj, "/tasks/", {"task": task_params}, "POST")
     present(ctx, newtask)
 
