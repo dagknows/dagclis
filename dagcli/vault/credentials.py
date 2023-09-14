@@ -12,6 +12,8 @@ app = typer.Typer()
 class ConnType(str, Enum):
     SSH = "ssh"
     WINRM = "winrm"
+    BASICAUTH = "basicauth"
+    JWT = "jwt"
 
 class LoginType(str, Enum):
     SSH_KEY = "ssh_key_file"
@@ -73,7 +75,13 @@ def get(ctx: typer.Context,
         role: str = typer.Option(None, help = "Role in which get details of a credential from.  If not specified returns details of label in all roles it exists in")):
     vapi = ctx.obj.vault_api
     if role:
-        return vapi.get_credentials(role, cred_label)
+        creds = vapi.get_credentials(role, cred_label)
+        if "ssh_key" in creds: creds.pop("ssh_key")
+        print(creds)
     else:
-        roles = vapi.list_roles()
-        return [vapi.get_credentials(role, cred_label) for role in roles]
+        all_roles = vapi.list_roles()
+        for role in all_roles:
+            creds = vapi.get_credentials(role, cred_label)
+            if creds:
+                if "ssh_key" in creds: creds.pop("ssh_key")
+                print(f"{role}: ", creds)
