@@ -17,13 +17,13 @@ class OrderBy(str, Enum):
     MOSTLINKED = "mostlinked"
 
 @app.command()
-def search(ctx: typer.Context,
-           query: str = typer.Argument("", help="Query to search for if any"),
-           userid: str = typer.Option("", help = "User to get tasks for "),
-           collaborator: str = typer.Option("", help = "Filter by collaborator id"),
-           with_pending_perms: bool = typer.Option(False, help = "Whether to filter by tasks that have pending perms."),
-           order_by: OrderBy = typer.Option(OrderBy.RECENT, help = "Order by criteria"),
-           tags: str = typer.Option("", help="Comma separated list of tags to search by.  Only 1 supported now")):
+def list(ctx: typer.Context,
+         query: str = typer.Argument("", help="Query to search for if any"),
+         userid: str = typer.Option("", help = "User to get tasks for "),
+         collaborator: str = typer.Option("", help = "Filter by collaborator id"),
+         with_pending_perms: bool = typer.Option(False, help = "Whether to filter by tasks that have pending perms."),
+         order_by: OrderBy = typer.Option(OrderBy.RECENT, help = "Order by criteria"),
+         tags: str = typer.Option("", help="Comma separated list of tags to search by.  Only 1 supported now")):
     """Search for tasks."""
     if with_pending_perms: userid = "me"
     ctx.obj.tree_transformer = lambda obj: task_list_transformer(obj["tasks"])
@@ -43,27 +43,6 @@ def get(ctx: typer.Context,
     """ Gets one or more tasks given IDs.  If no IDs are specified then a list of all tasks are returned."""
     ctx.obj.tree_transformer = lambda obj: rich_task_info(obj["task"], obj["descendants"])
     present(ctx, newapi(ctx.obj, f"/tasks/{task_id}?recurse={recurse}", { }, "GET"))
-
-@app.command()
-def sync(ctx: typer.Context,
-         full_source_url: str = typer.Argument(..., help = f"Source URL to sync from, eg {EXAMPLE_SYNC_URL}"),
-         resync: bool = typer.Option(False, help="Whether to resync if already exists")):
-    """ Syncs a task from an external source. """
-    ctx.obj.tree_transformer = lambda obj: rich_task_info(obj["task"], obj["descendants"])
-    parts = [p for p in full_source_url.split("/") if p]
-    if len(parts) < 4 or parts[-2] != "tasks" or parts[-3] != "api"or parts[0].lower() not in ("http:", "https:"):
-        ctx.fail(f"full_source_url needs to be of the form <scheme>://<domain>/api/tasks/<taskid>, eg: {EXAMPLE_SYNC_URL}")
-    scheme = parts[0].lower()
-    domain = parts[-4]
-    source_url = f"{scheme}//{domain}/api/tasks"
-    source_task_id = parts[-1]
-    present(ctx, newapi(ctx.obj, "/tasks/sync/", {
-        "source_info": {
-            "source_url": source_url,
-            "source_id": source_task_id,
-        },
-        "resync": resync,
-    }, "POST"))
 
 @app.command()
 def clone(ctx: typer.Context,
@@ -219,4 +198,44 @@ def update(ctx: typer.Context, task_id: str = typer.Argument(..., help = "ID of 
         "sub_task_ops": sub_task_ops ,
     }
     resp = newapi(ctx.obj, f"/tasks/{task_id}", payload, "PATCH")
+    present(ctx, resp)
+
+@app.command()
+def sync(ctx: typer.Context,
+         full_source_url: str = typer.Argument(..., help = f"Source URL to sync from, eg {EXAMPLE_SYNC_URL}"),
+         resync: bool = typer.Option(False, help="Whether to resync if already exists")):
+    """ Syncs a task from an external source. """
+    ctx.obj.tree_transformer = lambda obj: rich_task_info(obj["task"], obj["descendants"])
+    parts = [p for p in full_source_url.split("/") if p]
+    if len(parts) < 4 or parts[-2] != "tasks" or parts[-3] != "api"or parts[0].lower() not in ("http:", "https:"):
+        ctx.fail(f"full_source_url needs to be of the form <scheme>://<domain>/api/tasks/<taskid>, eg: {EXAMPLE_SYNC_URL}")
+    scheme = parts[0].lower()
+    domain = parts[-4]
+    source_url = f"{scheme}//{domain}/api/tasks"
+    source_task_id = parts[-1]
+    present(ctx, newapi(ctx.obj, "/tasks/sync/", {
+        "source_info": {
+            "source_url": source_url,
+            "source_id": source_task_id,
+        },
+        "resync": resync,
+    }, "POST"))
+
+@app.command()
+def push(ctx: typer.Context,
+         task_id: str = typer.Argument(None, help = "IDs of the Tasks to push to the community"),
+         recurse: bool = typer.Option(True, help="Whether to recursively get task and its children"),
+         dest: str = typer.Argument(None, help = "Name of the config use to access the destination.  Make sure you 'dk config init' with this profile first before using it.  If not provided then the default COMMUNITY_URL on the host is used.  This instance cannot be same as your current instance")):
+    """ Syncs a task from an external source. """
+    payload = { "recurse": recurse, }
+    if dest:
+        last_profile = ctx.current_profile
+        ctx.current_profile = dest
+
+        payload["dest_url"] = ctx.obj.resolve("api_host")
+        payload["dest_token"] = ctx.access_token
+
+        # reset it
+        ctx.current_profile = last_profile
+    resp = newapi(ctx.obj, f"/tasks/{task_id}/push", payload, "POST")
     present(ctx, resp)

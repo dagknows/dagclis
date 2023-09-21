@@ -161,11 +161,11 @@ def newapi(dkconfig: "DagKnowsConfig", path, payload=None, method = ""):
         print(f"API Request: {method.upper()} {url}: ", payload)
     if payload:
         if method == "get":
-            resp = methfunc(url, params=payload, headers=headers)
+            resp = methfunc(url, params=payload, headers=headers, verify=False)
         else:
-            resp = methfunc(url, json=payload, headers=headers)
+            resp = methfunc(url, json=payload, headers=headers, verify=False)
     else:
-        resp = methfunc(url, headers=headers)
+        resp = methfunc(url, headers=headers, verify=False)
     # print(json.dumps(resp.json(), indent=4))
     if resp.status_code != 200:
         print("Request Failed: ", resp.content)
