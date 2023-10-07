@@ -228,14 +228,14 @@ def push(ctx: typer.Context,
          dest: str = typer.Argument(None, help = "Name of the config use to access the destination.  Make sure you 'dk config init' with this profile first before using it.  If not provided then the default COMMUNITY_URL on the host is used.  This instance cannot be same as your current instance")):
     """ Syncs a task from an external source. """
     payload = { "recurse": recurse, }
+    last_profile = ctx.obj.curr_profile
     if dest:
-        last_profile = ctx.current_profile
-        ctx.current_profile = dest
-
+        ctx.obj.curr_profile = dest
         payload["dest_url"] = ctx.obj.resolve("api_host")
-        payload["dest_token"] = ctx.access_token
-
+        payload["dest_token"] = ctx.obj.access_token
         # reset it
-        ctx.current_profile = last_profile
-    resp = newapi(ctx.obj, f"/tasks/{task_id}/push", payload, "POST")
+        ctx.obj.curr_profile = last_profile
+    apihost = None # "http://localhost:2235/api/v1"
+    resp = newapi(ctx.obj, f"/tasks/{task_id}/push/", payload=payload, method="GET", apihost=None)
+
     present(ctx, resp)

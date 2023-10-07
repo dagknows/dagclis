@@ -148,8 +148,8 @@ def oldapi(cmd, payload=None, url="https://localhost:443", access_token=""):
     resp = requests.post(fullurl, json=payload or {}, headers=headers, verify=False)
     return resp.json()
 
-def newapi(dkconfig: "DagKnowsConfig", path, payload=None, method = ""):
-    apihost = dkconfig.resolve("api_host")
+def newapi(dkconfig: "DagKnowsConfig", path, payload=None, method = "", apihost=None):
+    apihost = apihost or dkconfig.resolve("api_host")
     url = make_url(apihost, path)
     method = method.lower()
     headers = dkconfig.headers
