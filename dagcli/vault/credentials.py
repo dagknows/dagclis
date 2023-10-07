@@ -24,7 +24,7 @@ def add(ctx: typer.Context,
         label: str = typer.Argument(..., help="Label of the credentials to add"),
         role: str = typer.Option(..., help = "Role to add credential to"),
         conn_type: ConnType = typer.Option(ConnType.SSH, help = "Type of connection this credential allows acccess to"),
-        ssh_key_file : typer.FileText= typer.Option(None, help='Key file name to use for ssh login associated with this credential'),
+        ssh_key_file : str = typer.Option(None, help='Key file name to use for ssh login associated with this credential'),
         password : str = typer.Option(None, help='Password to use for passowrd login login associated with this credential.  Will be prompted for if empty'),
         username: str = typer.Option(..., help = "Credential user name")):
     vapi = ctx.obj.vault_api
@@ -32,7 +32,10 @@ def add(ctx: typer.Context,
     login_type = "password"
     if ssh_key_file:
         login_type = "ssh_key_file"
-        ssh_key_file_name = ssh_key_file.name
+        ssh_key_file_name = ssh_key_file
+        if not ssh_key_file.startswith("/"):
+            # Relative path - so do it relative to vault_keys_folder
+            ssh_key_file_name = os.path.join(ctx.obj.vault_keys_folder, ssh_key_file)
     else:
         password = password or Prompt.ask("Please enter login password: ", password=True)
         if not password:
