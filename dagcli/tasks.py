@@ -213,13 +213,13 @@ def sync(ctx: typer.Context,
     domain = parts[-4]
     source_url = f"{scheme}//{domain}/api/tasks"
     source_task_id = parts[-1]
-    present(ctx, newapi(ctx.obj, "/tasks/sync/", {
-        "source_info": {
+    present(ctx, newapi(ctx.obj, "/tasks/sync", {
+        # "source_info": {
             "source_url": source_url,
             "source_id": source_task_id,
-        },
+        # },
         "resync": resync,
-    }, "POST"))
+    }, "GET"))
 
 @app.command()
 def push(ctx: typer.Context,
