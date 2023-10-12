@@ -1,5 +1,5 @@
 
-import typer
+import typer, time
 from enum import Enum
 from dagcli.client import newapi
 from dagcli.utils import present
@@ -73,16 +73,34 @@ def run(ctx: typer.Context,
         proxy_alias: str= typer.Option("", help="Alias of the proxy to execute on", envvar="DagKnowsProxyAlias"),
         proxy_token: str= typer.Option("", help="Token of the proxy to execute on", envvar="DagKnowsProxyToken"),
         params: str = typer.Option(None, help = "Json dictionary of parameters"),
+        forever: bool = typer.Option(False, help = "Whether to repeat for ever"),
+        start_in: int = typer.Option(0, help = "Delayed start in this many seconds, 0 => schedule immediately"),
+        end_in: int = typer.Option(-1, help = "Do not schedule job after this many seconds (used when repeating jobs)"),
+        num_times: int = typer.Option(0, help = "How many times to repeat"),
+        interval: int = typer.Option(-1, help = "How often to repeat the job in between.  -ve => no repetitions"),
+        interval_type: str = typer.Option("seconds", help = "Interval type - 'seconds', 'minutes', 'hours', 'days'"),
         file: typer.FileText = typer.Option(None, help = "File containing a json of the parametres")):
     """ Execute a task. """
     job = {
         "proxy_alias": proxy_alias,
         "proxy_token": proxy_token,
+        "schedule": {
+            "start_at": time.time() + start_in,
+            "repeat": interval >= 0,
+            "forever": forever,
+            "num_times": num_times,
+            "interval": interval,
+            "interval_type": interval_type,
+        }
     }
+    if end_in > 0:
+        job["schedule"]["end_at"] = time.time() + end_in
+
     job["param_values"] = {}
     if file: payload["param_values"].update(json.load(file))
     if params: job["param_values"].update(json.loads(params))
-    present(ctx, newapi(ctx.obj, f"/tasks/{taskid}/execute", {"job": job}, "POST"))
+
+    present(ctx, newapi(ctx.obj, f"/tasks/{taskid}/execute/", {"job": job}, "POST"))
 
 @app.command()
 def delete(ctx: typer.Context,

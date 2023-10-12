@@ -8,6 +8,10 @@ import requests
 import psutil
 import time
 
+from urllib3.exceptions import InsecureRequestWarning
+from urllib3 import disable_warnings
+disable_warnings(InsecureRequestWarning)
+
 app = typer.Typer()
 
 @app.command()
@@ -145,9 +149,6 @@ def flush(ctx: typer.Context,
         raise Exception(f"Invalid RRHost: {apihost}")
 
     write_backup = True
-    from urllib3.exceptions import InsecureRequestWarning
-    from urllib3 import disable_warnings
-    disable_warnings(InsecureRequestWarning)
     errmsg = ""
     try:
         respObj = requests.post(f"{rrhost}/processCliBlob", json=reqObj, headers=headers, verify=False)
