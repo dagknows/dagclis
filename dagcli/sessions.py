@@ -141,9 +141,7 @@ def flush(ctx: typer.Context,
     # Hack - need to either move to using the api gateway or prompt
     # for reqrouter host
     apihost =  ctx.obj.resolve("api_host")
-    if apihost.startswith("http://localhost"):
-        rrhost = "https://localhost"
-    elif apihost.endswith("/api"):
+    if apihost.endswith("/api"):
         rrhost = apihost[:-len("/api")]
     else:
         raise Exception(f"Invalid RRHost: {apihost}")
