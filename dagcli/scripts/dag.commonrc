@@ -77,7 +77,7 @@ dagknows_precmd() {
   SESSION=`dagknows_curr_session`
   PROFILE=`dagknows_curr_profile`
   if [ "$SESSION" != "" -a "$PROFILE" != "" ]; then
-    dk --profile=$PROFILE sessions flush $DK_FLUSH_ARG $SESSION
+    dk --profile=$PROFILE sessions flush $DK_FLUSH_FLAGS $SESSION
 
     if echo "$PS1" | grep -q -v "DagKnows - [^]]*]"; then
       PS1="[DagKnows - $PROFILE:$SESSION] $PS1"
