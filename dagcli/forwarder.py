@@ -5,6 +5,7 @@ import time, logging
 import threading
 import requests
 
+import json
 import psutil
 import typer, os
 from dagcli.client import newapi
@@ -154,3 +155,16 @@ def start_forwarder(serverPort, hostName="localhost"):
 
     webServer.server_close()
     logger.debug("Server stopped.")
+
+def submit(ctx, rrhost, headers, reqObj):
+    fwdport = get_active_forwarder_port(ctx)
+    url = f"http://localhost:{fwdport}"
+    reqdata = {"reqObj": reqObj, "rrhost": rrhost, "headers": headers}
+    if True:
+        resp = requests.post(url, json=reqdata, verify=False)
+    else:
+        from urllib.parse import urlencode
+        from urllib.request import Request, urlopen
+        req = Request(url, bytes(json.dumps(reqdata), "utf-8"))
+        resp = urlopen(req).read().decode()
+        print(resp)

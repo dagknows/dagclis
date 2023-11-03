@@ -174,8 +174,7 @@ def flush(ctx: typer.Context,
                 errmsg = f"{time.time()} Server error accepting CLI command and outputs.  Backing up locally"
         else:
             # send to the forwarder
-            host = f"http://localhost:{fwdport}"
-            resp = requests.post(host, json={"reqObj": reqObj, "rrhost": rrhost, "headers": headers}, verify=False)
+            forwarder.submit(ctx, rrhost, headers, reqObj)
     except Exception as error:
         # back it up if there is a failure
         write_backup = True
