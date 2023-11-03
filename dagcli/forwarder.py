@@ -40,8 +40,11 @@ logger.addHandler(ch)
 def stop(ctx: typer.Context):
     """ Stops all cli blob forwarder processes. """
     for proc in psutil.process_iter():
-        cmdline = proc.cmdline()
-        if not cmdline[0].lower().endswith("/python"): continue
+        try:
+            cmdline = proc.cmdline()
+        except:
+            continue
+        if len(cmdline) < 4: continue
         if not cmdline[1].endswith("/dk"): continue
         if cmdline[2] != "forwarder" or cmdline[3] != "ensure": continue
         print("Killing Proc Name, CmdLine: ", proc.name(), proc.cmdline())
