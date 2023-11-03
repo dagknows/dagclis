@@ -10,10 +10,13 @@ import traceback
 import psutil
 import time
 import threading
+import logging
 
 from urllib3.exceptions import InsecureRequestWarning
 from urllib3 import disable_warnings
 disable_warnings(InsecureRequestWarning)
+logging.getLogger('urllib3').setLevel(logging.CRITICAL)
+logging.getLogger('requests').setLevel(logging.CRITICAL)
 
 app = typer.Typer()
 
