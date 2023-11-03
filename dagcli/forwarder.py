@@ -5,6 +5,7 @@ import time, logging
 import threading
 import requests
 
+import psutil
 import typer, os
 from dagcli.client import newapi
 from dagcli.utils import present, ensure_shellconfigs
@@ -37,7 +38,14 @@ logger.addHandler(ch)
 @app.command()
 def stop(ctx: typer.Context):
     """ Stops all cli blob forwarder processes. """
-    pass
+    for proc in psutil.process_iter():
+        if not proc.name().lower() == "python": continue
+        cmdline = proc.cmdline()
+        if not cmdline[0].lower().endswith("/python"): continue
+        if not cmdline[1].endswith("/dk"): continue
+        if cmdline[2] != "forwarder" or cmdline[3] != "ensure": continue
+        print("Killing Proc Name, CmdLine: ", proc.name(), proc.cmdline())
+        proc.kill()
 
 @app.command()
 def ensure(ctx: typer.Context,

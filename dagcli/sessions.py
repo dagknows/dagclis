@@ -280,6 +280,9 @@ def start(ctx: typer.Context):
 @app.command()
 def stop(ctx: typer.Context):
     """ Exports a session currently being recorded. """
+
+    # Stop the forwarder first
+    forwarder.stop(ctx)
     proffile = ctx.obj.getpath("current_profile", profile_relative=False)
     sessfile = ctx.obj.getpath("current_session")
     session_id = profile = ""
