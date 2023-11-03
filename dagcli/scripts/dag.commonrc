@@ -33,7 +33,8 @@ dagknows_start_session_script() {
    MYPCMD=`ps -o comm= -p ${MYPPID} | xargs`
    SESSION=`dagknows_curr_session`
    PROFILE=`dagknows_curr_profile`
-   nohup dk forwarder ensure 2>&1 | tee nohup.out &
+   ( nohup dk forwarder ensure 2>&1 > /dev/null & )
+   # nohup dk forwarder ensure 2>&1 | tee nohup.out &
    if [ "$SESSION" = "" -o "$PROFILE" = "" ]; then
      return
    fi
