@@ -57,6 +57,12 @@ def get_token_for_label(homedir: str, label: str) -> str:
     pass
 
 @app.command()
+def version(ctx: typer.Context):
+    """ Prints out DK cli version and other info."""
+    from dagcli import __version__
+    print("DagKnows CLI Version: ", __version__)
+
+@app.command()
 def logout(ctx: typer.Context):
     """ Logs out DagKnows and clears all sessions. """
     # TODO
