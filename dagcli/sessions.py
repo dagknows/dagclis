@@ -154,7 +154,6 @@ def flush(ctx: typer.Context,
     errmsg = ""
     try:
         fwdport = forwarder.get_active_forwarder_port(ctx)
-        print("Fwd Port: ", fwdport)
         if fwdport <= 0 or sync:
             respObj = requests.post(f"{rrhost}/processCliBlob", json=reqObj, headers=headers, verify=False)
             if respObj.status_code == 200:
