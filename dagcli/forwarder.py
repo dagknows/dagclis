@@ -156,15 +156,35 @@ def start_forwarder(serverPort, hostName="localhost"):
     webServer.server_close()
     logger.debug("Server stopped.")
 
-def submit(ctx, rrhost, headers, reqObj):
+def submit(ctx, rrhost, headers, reqObj, sync=False):
     fwdport = get_active_forwarder_port(ctx)
-    url = f"http://localhost:{fwdport}"
-    reqdata = {"reqObj": reqObj, "rrhost": rrhost, "headers": headers}
-    if True:
-        resp = requests.post(url, json=reqdata, verify=False)
+    start_time = time.time()
+    logger.debug(f"Got request to submit, sync: {sync}")
+    if sync:
+        respObj = requests.post(f"{rrhost}/processCliBlob", json=reqObj, headers=headers, verify=False)
+        if respObj.status_code == 200:
+            show_recommendations = ctx.obj.resolve("recommendations")
+            if show_recommendations:
+                result = respObj.json()
+                recommendations = result.get("recommendations", [])
+                if recommendations:
+                    print("Recommendations: ")
+                    print("----------------------------------------------------")
+                    for rec in recommendations:
+                        print_reco(rec)
+        else:
+            raise Exception(respObj)
     else:
-        from urllib.parse import urlencode
-        from urllib.request import Request, urlopen
-        req = Request(url, bytes(json.dumps(reqdata), "utf-8"))
-        resp = urlopen(req).read().decode()
-        print(resp)
+        url = f"http://localhost:{fwdport}"
+        reqdata = {"reqObj": reqObj, "rrhost": rrhost, "headers": headers}
+        if True:
+            resp = requests.post(url, json=reqdata, verify=False)
+        else:
+            from urllib.parse import urlencode
+            from urllib.request import Request, urlopen
+            req = Request(url, bytes(json.dumps(reqdata), "utf-8"))
+            resp = urlopen(req).read().decode()
+            print(resp)
+    end_time = time.time()
+    logger.debug(f"Forwarding submit request finished in {end_time - start_time} seconds.")
+

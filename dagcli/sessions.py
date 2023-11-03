@@ -156,25 +156,7 @@ def flush(ctx: typer.Context,
     write_backup = True
     errmsg = ""
     try:
-        fwdport = forwarder.get_active_forwarder_port(ctx)
-        if fwdport <= 0 or sync:
-            respObj = requests.post(f"{rrhost}/processCliBlob", json=reqObj, headers=headers, verify=False)
-            if respObj.status_code == 200:
-                show_recommendations = ctx.obj.resolve("recommendations")
-                if show_recommendations:
-                    result = respObj.json()
-                    recommendations = result.get("recommendations", [])
-                    if recommendations:
-                        print("Recommendations: ")
-                        print("----------------------------------------------------")
-                        for rec in recommendations:
-                            print_reco(rec)
-            else:
-                write_backup = True
-                errmsg = f"{time.time()} Server error accepting CLI command and outputs.  Backing up locally"
-        else:
-            # send to the forwarder
-            forwarder.submit(ctx, rrhost, headers, reqObj)
+        forwarder.submit(ctx, rrhost, headers, reqObj, sync=sync)
     except Exception as error:
         # back it up if there is a failure
         write_backup = True
