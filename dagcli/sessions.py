@@ -3,10 +3,13 @@ from typing import List
 from dagcli.client import newapi
 from dagcli.utils import present, ensure_shellconfigs, print_reco, get_curr_shell
 from dagcli.transformers import *
+from dagcli import forwarder
 import subprocess, os, base64
 import requests
+import traceback
 import psutil
 import time
+import threading
 
 from urllib3.exceptions import InsecureRequestWarning
 from urllib3 import disable_warnings
@@ -106,7 +109,8 @@ def record(ctx: typer.Context,
 
 @app.command()
 def flush(ctx: typer.Context,
-          session_id: str = typer.Argument(..., help="Session ID to flush and export.")):
+          session_id: str = typer.Argument(..., help="Session ID to flush and export."),
+          sync: bool = typer.Option(True, help="Whether to flush synchronously or asynchronolusly.")):
     """ Flush all accumulated commands to the server. """
     # Get hostname
     p = subprocess.run("hostname", shell=True, stdout=subprocess.PIPE)
@@ -149,23 +153,31 @@ def flush(ctx: typer.Context,
     write_backup = True
     errmsg = ""
     try:
-        respObj = requests.post(f"{rrhost}/processCliBlob", json=reqObj, headers=headers, verify=False)
-        if respObj.status_code == 200:
-            show_recommendations = ctx.obj.resolve("recommendations")
-            if show_recommendations:
-                result = respObj.json()
-                recommendations = result.get("recommendations", [])
-                if recommendations:
-                    print("Recommendations: ")
-                    print("----------------------------------------------------")
-                    for rec in recommendations:
-                        print_reco(rec)
+        fwdport = forwarder.get_active_forwarder_port(ctx)
+        print("Fwd Port: ", fwdport)
+        if fwdport <= 0 or sync:
+            respObj = requests.post(f"{rrhost}/processCliBlob", json=reqObj, headers=headers, verify=False)
+            if respObj.status_code == 200:
+                show_recommendations = ctx.obj.resolve("recommendations")
+                if show_recommendations:
+                    result = respObj.json()
+                    recommendations = result.get("recommendations", [])
+                    if recommendations:
+                        print("Recommendations: ")
+                        print("----------------------------------------------------")
+                        for rec in recommendations:
+                            print_reco(rec)
+            else:
+                write_backup = True
+                errmsg = f"{time.time()} Server error accepting CLI command and outputs.  Backing up locally"
         else:
-            write_backup = True
-            errmsg = f"{time.time()} Server error accepting CLI command and outputs.  Backing up locally"
+            # send to the forwarder
+            host = f"http://localhost:{fwdport}"
+            resp = requests.post(host, json={"reqObj": reqObj, "rrhost": rrhost, "headers": headers}, verify=False)
     except Exception as error:
         # back it up if there is a failure
         write_backup = True
+        print("Err: ", traceback.format_exc())
         errmsg = f"{time.time()} Server error accepting CLI command and outputs.  Backing up locally"
         print(errmsg)
 
@@ -209,6 +221,10 @@ def script_already_started(ctx, session_id):
 
 def start_shell(ctx: typer.Context, session_id: str):
     ctx.obj.getpath(f"sessions/{session_id}", is_dir=True, ensure=True)
+
+    # Before doing so ensure we have our forwarder running
+    # threading.Thread(target=forwarder.ensure, args=(ctx, 12000)).start()
+
     if script_already_started(ctx, session_id):
         return
 

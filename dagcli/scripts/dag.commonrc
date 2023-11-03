@@ -37,6 +37,7 @@ dagknows_start_session_script() {
      return
    fi
    if [ "$MYPCMD" != "script" ]; then
+      nohup dk forwarder ensure 2>&1 | tee nohup.out &
       dk sessions start
    else
       echo ""
@@ -75,7 +76,7 @@ dagknows_precmd() {
   SESSION=`dagknows_curr_session`
   PROFILE=`dagknows_curr_profile`
   if [ "$SESSION" != "" -a "$PROFILE" != "" ]; then
-    dk --profile=$PROFILE sessions flush $SESSION
+    dk --profile=$PROFILE sessions flush --no-sync $SESSION
 
     if echo "$PS1" | grep -q -v "DagKnows - [^]]*]"; then
       PS1="[DagKnows - $PROFILE:$SESSION] $PS1"

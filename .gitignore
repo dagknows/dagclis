@@ -1,4 +1,5 @@
 .pyc
+nohup.out
 .DS_Store
 typescript
 build

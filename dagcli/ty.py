@@ -7,6 +7,7 @@ from dagcli import messages
 from dagcli import tokens
 from dagcli import proxy
 from dagcli import config
+from dagcli import forwarder
 
 app.add_typer(sessions.app, name="sessions", callback=ensure_access_token)
 app.add_typer(messages.app, name="messages", callback=ensure_access_token)
@@ -15,6 +16,7 @@ app.add_typer(jobs.app, name="jobs", callback=ensure_access_token)
 app.add_typer(tokens.app, name="tokens", callback=ensure_access_token)
 app.add_typer(proxy.app, name="proxy", callback=ensure_access_token)
 app.add_typer(config.app, name="config", callback=ensure_access_token)
+app.add_typer(forwarder.app, name="forwarder")
 
 if __name__ == "__main__":
     app()
