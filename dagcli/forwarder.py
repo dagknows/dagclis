@@ -94,8 +94,8 @@ def start_forwarder(serverPort, hostName="localhost"):
         while True:
             next = q.get()
             if next:
-                logger.debug("Got next to send: ", next)
                 rrhost, reqObj, headers = next
+                logger.debug(f"Got next request: Host: {rrhost}, Headers: {headers}, Req: {reqObj}")
                 respObj = requests.post(f"{rrhost}/processCliBlob", json=reqObj, headers=headers, verify=False)
                 logger.debug(f"Forward to processCliBlob, stauts: {respObj.status_code}")
 
