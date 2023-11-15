@@ -69,7 +69,6 @@ def rich_task_info(task, descendants=None, show_subtasks=True, show_perms=True):
 
     # Now subtasks
     subtasks = task.get("sub_tasks", [])
-    # import ipdb ; set_trace()
     if subtasks:
         body = treenode.add("SubTasks:")
         for stinfo in subtasks:

@@ -89,9 +89,10 @@ class SessionClient:
         admin_settings = resp["admin_settings"]
         return ""
 
-    def add_proxy(self, label):
+    def add_proxy(self, label, dagknows_url=None):
+        dagknows_url = dagknows_url or None
         url = make_url(self.host, "/addAProxy")
-        payload = { "alias": label, }
+        payload = { "alias": label, "dagknows_url": dagknows_url}
         resp = self.session.post(url, json=payload)
         return resp.json()
 

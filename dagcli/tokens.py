@@ -25,5 +25,4 @@ def list(ctx: typer.Context,
 def revoke(ctx: typer.Context, label: str = typer.Argument(..., help="Label of the token to revoke")):
     sesscli = SessionClient(ctx.obj)
     token = label # get_token_for_label(label)
-    set_trace()
     resp = sesscli.revoke_access_token(token)

@@ -97,7 +97,6 @@ def present(ctx: typer.Context, results, notree=False):
                 pprint(results)
             elif not ctx.obj.tree_transformer:
                 print(yaml.dump(filtered_results, indent=4, sort_keys=False))
-                # set_trace()
                 # assert False, "'tree' output format needs a tree transformer to convert results into a tree structure where each node only has either 'title' or 'children'"
             else:
                 tree = ctx.obj.tree_transformer(results)

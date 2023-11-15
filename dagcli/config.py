@@ -44,7 +44,6 @@ def init(ctx: typer.Context,
             # make call and get access_token
             payload = {"org": org, "username": username, "credentials": { "password": password } }
             resp = newapi(ctx.obj, "/v1/users/login", payload, "POST")
-            import ipdb ; ipdb.set_trace()
             all_tokens = sorted([(v["expiry"], v,k) for k,v in resp["data"].items() if not v.get("revoked", False)])
             access_token = all_tokens[-1][2]
         else:

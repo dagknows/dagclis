@@ -24,7 +24,6 @@ def common_params(ctx: typer.Context,
     assert ctx.obj is None
 
     # See if there is a current file
-    # import ipdb ; ipdb.set_trace()
     dagknows_home_dir = os.path.expanduser(dagknows_home)
     if not profile:
         curr_profile_file = os.path.join(dagknows_home_dir, "current_profile")

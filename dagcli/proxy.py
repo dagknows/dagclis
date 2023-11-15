@@ -1,18 +1,25 @@
 import typer
 import os
 from typing import List
+import requests
+
+from urllib3.exceptions import InsecureRequestWarning
+from urllib3 import disable_warnings
+disable_warnings(InsecureRequestWarning)
 
 app = typer.Typer()
 
 @app.command()
 def new(ctx: typer.Context,
-        label: str = typer.Argument(..., help="Label of the new proxy to create")):
+        label: str = typer.Argument(..., help="Label of the new proxy to create"),
+        dagknows_url: str = typer.Option("", help="Custom dagknows_url if not host")):
     sesscli = ctx.obj.client
-    resp = sesscli.add_proxy(label)
-    if resp.get("responsecode", False) in (False, "false", "False"):
-        print(resp["msg"])
-    else:
-        print("OK")
+    from dagcli.client import make_url
+    dagknows_url = dagknows_url or sesscli.host
+    url = make_url(sesscli.host, "/addAProxy")
+    payload = { "alias": label, "dagknows_url": dagknows_url}
+    resp = requests.post(url, json=payload, headers=ctx.obj.headers, verify=False)
+    print(resp.json())
 
 @app.command()
 def get(ctx: typer.Context,
