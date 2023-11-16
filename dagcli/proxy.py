@@ -41,6 +41,7 @@ def get(ctx: typer.Context,
         p = subprocess.run(["tar", "-zxvf", outfile.name])
         print(p.stderr)
         print(p.stdout)
+        subprocess.run(["chmod", "a+rw", os.path.abspath(os.path.join(folder, "vault"))])
 
 @app.command()
 def list(ctx: typer.Context):
