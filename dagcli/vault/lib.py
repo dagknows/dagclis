@@ -41,7 +41,10 @@ class dagknows_proxy_vault():
             role_type='jwt',
             allowed_redirect_uris=[self.vault_url],
             user_claim='sub',
-            bound_claims={'role' : role},
+            bound_claims={
+                'roles/proxy' : role,
+                # 'proxyrole' : role
+            },
             bound_audiences=['dagknows'],
             token_policies=role+'_policy'
         )
