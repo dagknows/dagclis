@@ -1,3 +1,4 @@
+import subprocess
 import typer
 import os
 from typing import List
@@ -31,6 +32,7 @@ def update(ctx: typer.Context,
     respath = os.path.join(folder, "Makefile")
     with open(respath, "w") as resfile:
         resfile.write(resdata.decode())
+    subprocess.run(f"cd {folder} && make update", shell=True)
 
 @app.command()
 def get(ctx: typer.Context,
