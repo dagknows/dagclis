@@ -3,6 +3,7 @@ import os
 from typing import List
 import requests
 
+from pkg_resources import resource_string
 from urllib3.exceptions import InsecureRequestWarning
 from urllib3 import disable_warnings
 disable_warnings(InsecureRequestWarning)
@@ -20,6 +21,16 @@ def new(ctx: typer.Context,
     payload = { "alias": label, "dagknows_url": dagknows_url}
     resp = requests.post(url, json=payload, headers=ctx.obj.headers, verify=False)
     print(resp.json())
+
+@app.command()
+def update(ctx: typer.Context,
+           folder: str = typer.Option("./", help="Directory to check for a proxy in.  Current folder if not provided.")):
+    """ Update the proxy in the current folder if any. """
+    resdata = resource_string("dagcli", f"scripts/Makefile.proxy")
+    folder = os.path.abspath(os.path.expanduser(folder))
+    respath = os.path.join(folder, "Makefile")
+    with open(respath, "w") as resfile:
+        resfile.write(resdata.decode())
 
 @app.command()
 def get(ctx: typer.Context,
