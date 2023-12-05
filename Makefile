@@ -1,19 +1,16 @@
 
-down:
-	sudo docker-compose down
 
-build: down
-	sudo docker-compose up --build -d
+all: cleanall build 
 
-up: down
-	sudo docker-compose up -d
+cleanall:
+	rm -Rf dist ; rm -Rf build ; rm -Rf *.egg-info
 
-logs:
-	sudo docker-compose logs -f
+build:
+	pip-compile pyproject.toml
+	python -m build . --wheel
+	twine check dist/*
 
-update: pull down build up logs
+test:
+	coverage run --omit './env/*' --omit '/usr/*' -m unittest tests/*.py
+	coverage report
 
-pull:
-	sudo docker pull gcr.io/dagknows-proxy-images/cmd_exec:latest
-	sudo docker pull gcr.io/dagknows-proxy-images/script_exec:latest
-	sudo docker pull gcr.io/dagknows-proxy-images/agent_frontend:latest
