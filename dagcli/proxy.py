@@ -57,6 +57,7 @@ def getenv(ctx: typer.Context,
 
         newenv = []
         newenvfile = resp.get("envfile", {})
+        newenvcopy = newenvfile.copy()
         envfile = os.path.abspath(os.path.expanduser(envfile))
         print("Checking envfile: ", envfile, os.path.isfile(envfile))
         if os.path.isfile(envfile):
@@ -70,8 +71,12 @@ def getenv(ctx: typer.Context,
                     if k in newenvfile:
                         print(f"Key ({k}) Updated: [{v}] =====> [{newenvfile[k]}]")
                         newenv.append(f"{k}={newenvfile[k]}")
+                        del newenvfile[k]
                     else:
                         newenv.append(f"{k}={v}")
+            for k,v in newenvfile.items():
+                # These were never found so add them
+                newenv.append(f"{k}={v}")
         else:
             newenv = [f"{k}={v}" for k,v in newenvfile.items()]
 
@@ -113,7 +118,7 @@ def list(ctx: typer.Context):
         print("=" * 80)
         print("Name: ", alias)
         print("Token: ", info["token"])
-        print("Last Updated At: ", info["last_update"])
+        print("Last Updated At: ", info.get("last_update", ""))
 
 @app.command()
 def delete(ctx: typer.Context, label: str = typer.Argument(..., help="Label of the proxy to delete")):
