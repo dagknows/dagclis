@@ -61,7 +61,11 @@ def list(ctx: typer.Context):
     """ List proxies on this host. """
     sesscli = ctx.obj.client
     resp = sesscli.list_proxies(ctx.obj.access_token)
-    for k in resp: print(k)
+    for alias, info in resp.items():
+        print("=" * 80)
+        print("Name: ", alias)
+        print("Token: ", info["token"])
+        print("Last Updated At: ", info["last_update"])
 
 @app.command()
 def delete(ctx: typer.Context, label: str = typer.Argument(..., help="Label of the proxy to delete")):

@@ -104,7 +104,7 @@ class SessionClient:
             return
         admin_settings = resp["admin_settings"]
         proxy_table = admin_settings.get("proxy_table", {})
-        return proxy_table.keys()
+        return proxy_table
 
     def download_proxy(self, label, access_token):
         url = make_url(self.host, "/getSettings")
