@@ -35,10 +35,52 @@ def update(ctx: typer.Context,
     subprocess.run(f"cd {folder} && make update", shell=True)
 
 @app.command()
+def getenv(ctx: typer.Context,
+           label: str = typer.Argument(..., help="Label of the new proxy for which to get the environment variable"),
+           envfile: str= typer.Option("./.env", help="Envfile to update.")):
+    sesscli = ctx.obj.client
+    from dagcli.client import make_url
+    dagknows_url = sesscli.host
+    url = make_url(sesscli.host, "/getProxyEnv")
+    payload = { "alias": label }
+    resp = requests.post(url, json=payload, headers=ctx.obj.headers, verify=False)
+    if resp.status_code == 200:
+        resp = resp.json()
+        print("Resp: ", resp)
+        print("=" * 80)
+
+        newenv = []
+        newenvfile = resp.get("envfile", {})
+        envfile = os.path.abspath(os.path.expanduser(envfile))
+        print("Checking envfile: ", envfile, os.path.isfile(envfile))
+        if os.path.isfile(envfile):
+            lines = [l.strip() for l in open(envfile).read().split("\n") if l.strip()]
+            for l in lines:
+                if "=" not in l:
+                    newenv.append(l)
+                else:
+                    pos = l.find("=")
+                    k,v = l[:pos], l[pos+1:]
+                    if k in newenvfile:
+                        print(f"Key ({k}) Updated: [{v}] =====> [{newenvfile[k]}]")
+                        newenv.append(f"{k}={newenvfile[k]}")
+                    else:
+                        newenv.append(f"{k}={v}")
+        else:
+            newenv = [f"{k}={v}" for k,v in newenvfile.items()]
+
+        print("New Updated Env: ")
+        print("\n".join(newenv))
+
+        with open(envfile, "w") as ef:
+            ef.write("\n".join(newenv))
+    else:
+        print("Failed: ", resp.content)
+
+@app.command()
 def get(ctx: typer.Context,
         label: str = typer.Argument(..., help="Label of the new proxy to create"),
-        folder: str = typer.Option(None, help="Directory to install proxy files in.  Default to ./{label}"),
-        host: str = typer.Option(None, help="Reqrouter Host to connect to.  Will default to --reqrouter_host value")):
+        folder: str = typer.Option(None, help="Directory to install proxy files in.  Default to ./{label}")):
     sesscli = ctx.obj.client
     folder = os.path.abspath(os.path.expanduser(folder or label))
     proxy_bytes = sesscli.download_proxy(label, ctx.obj.access_token)
