@@ -27,11 +27,17 @@ def new(ctx: typer.Context,
 def update(ctx: typer.Context,
            folder: str = typer.Option("./", help="Directory to check for a proxy in.  Current folder if not provided.")):
     """ Update the proxy in the current folder if any. """
-    resdata = resource_string("dagcli", f"scripts/Makefile.proxy")
+    resp = requests.get("https://raw.githubusercontent.com/dagknows/dkproxy/main/Makefile", verify=False)
+    if resp.status_code != 200:
+        print("Resp: ", resp.content)
+        assert False
+
+    resdata = resp.content.decode("utf-8")
     folder = os.path.abspath(os.path.expanduser(folder))
     respath = os.path.join(folder, "Makefile")
     with open(respath, "w") as resfile:
-        resfile.write(resdata.decode())
+        resfile.write(resdata)
+
     subprocess.run(f"cd {folder} && make update", shell=True)
 
 @app.command()
