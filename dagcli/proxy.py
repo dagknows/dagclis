@@ -21,7 +21,12 @@ def new(ctx: typer.Context,
     url = make_url(sesscli.host, "/addAProxy")
     payload = { "alias": label, "dagknows_url": dagknows_url}
     resp = requests.post(url, json=payload, headers=ctx.obj.headers, verify=False)
-    print(resp.json())
+    print("Proxy created successfully: ", label)
+    print("Next steps:")
+    print(f"1. dk proxy get {label}")
+    print(f"2. cd {label}")
+    print(f"3. dk proxy getenv {label}")
+    print(f"4. dk proxy update")
 
 @app.command()
 def update(ctx: typer.Context,
@@ -52,14 +57,14 @@ def getenv(ctx: typer.Context,
     resp = requests.post(url, json=payload, headers=ctx.obj.headers, verify=False)
     if resp.status_code == 200:
         resp = resp.json()
-        print("Resp: ", resp)
-        print("=" * 80)
+        # print("Resp: ", resp)
+        # print("=" * 80)
 
         newenv = []
         newenvfile = resp.get("envfile", {})
         newenvcopy = newenvfile.copy()
         envfile = os.path.abspath(os.path.expanduser(envfile))
-        print("Checking envfile: ", envfile, os.path.isfile(envfile))
+        # print("Checking envfile: ", envfile, os.path.isfile(envfile))
         if os.path.isfile(envfile):
             lines = [l.strip() for l in open(envfile).read().split("\n") if l.strip()]
             for l in lines:

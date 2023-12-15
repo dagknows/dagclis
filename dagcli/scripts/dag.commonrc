@@ -64,7 +64,7 @@ dagknows_preexec() {
           mv $CMDFILE "${CMDFILE}.bak"
         fi
       else
-        if [ x"$SHELL" == x"/bin/bash" ]; then
+        if [ x"$SHELL" = x"/bin/bash" ]; then
           echo "PROMPT: " "'${PS1@P}'" " CMD: " $*  >> $CMDFILE
         else
           echo "PROMPT: " "'${(%%)PS1}'" " CMD: " $1  >> $CMDFILE
