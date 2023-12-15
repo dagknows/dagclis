@@ -236,7 +236,7 @@ def start_shell(ctx: typer.Context, session_id: str):
     print("-" * 80)
     shell_type = get_curr_shell()
     if shell_type == "bash":
-        subprocess.run(f"script -a -q -f {blobfile}", shell=True)
+        subprocess.run(f"script -a -q -F {blobfile}", shell=True)
     else:
         subprocess.run(f"script -a -q -F {blobfile}", shell=True)
     subprocess.run(f"reset")
