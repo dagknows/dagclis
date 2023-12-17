@@ -7,24 +7,21 @@ import requests
 
 import json
 import psutil
-import typer, os
+import typer, os, platform
 from dagcli.client import newapi
-from dagcli.utils import present, ensure_shellconfigs
+from dagcli.utils import present, ensure_shellconfigs, disable_urllib_warnings
 from dagcli.transformers import *
 from typing import List
 
-from urllib3.exceptions import InsecureRequestWarning
-from urllib3 import disable_warnings
-disable_warnings(InsecureRequestWarning)
-logging.getLogger('urllib3').setLevel(logging.CRITICAL)
-logging.getLogger('requests').setLevel(logging.CRITICAL)
-
+disable_urllib_warnings()
 app = typer.Typer()
 
 logger = logging.getLogger('forwarder_logger')
 logger.setLevel(logging.DEBUG)
 # log to file
-ch = logging.FileHandler("/tmp/forwarder.log")
+PLATFORM = platform.uname()
+SYSTEM_NAME = PLATFORM.system.lower()
+ch = logging.FileHandler(f"/tmp/forwarder_{os.getuid()}_{os.getlogin()}_{SYSTEM_NAME}.log")
 ch.setLevel(logging.DEBUG)
 
 # create formatter

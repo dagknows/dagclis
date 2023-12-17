@@ -4,19 +4,18 @@ from dagcli.client import newapi
 from dagcli.utils import present, ensure_shellconfigs, print_reco, get_curr_shell
 from dagcli.transformers import *
 from dagcli import forwarder
-import subprocess, os, base64
+import subprocess, os, base64, platform
 import requests
 import traceback
 import psutil
 import time
 import threading
-import logging
 
-from urllib3.exceptions import InsecureRequestWarning
-from urllib3 import disable_warnings
-disable_warnings(InsecureRequestWarning)
-logging.getLogger('urllib3').setLevel(logging.CRITICAL)
-logging.getLogger('requests').setLevel(logging.CRITICAL)
+from dagcli.utils import disable_urllib_warnings
+disable_urllib_warnings()
+
+PLATFORM = platform.uname()
+SYSTEM_NAME = PLATFORM.system.lower()
 
 app = typer.Typer()
 
@@ -235,10 +234,10 @@ def start_shell(ctx: typer.Context, session_id: str):
     print("")
     print("-" * 80)
     shell_type = get_curr_shell()
-    if shell_type == "bash":
+    if SYSTEM_NAME == "darwin": ## shell_type == "bash":
         subprocess.run(f"script -a -q -F {blobfile}", shell=True)
     else:
-        subprocess.run(f"script -a -q -F {blobfile}", shell=True)
+        subprocess.run(f"script -a -q -f {blobfile}", shell=True)
     subprocess.run(f"reset")
     print(f"DagKnows Shell Recording Turned Off")
 

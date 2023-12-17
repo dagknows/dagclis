@@ -5,6 +5,9 @@ import json
 import os, sys
 from typing import List
 
+from dagcli.utils import disable_urllib_warnings
+disable_urllib_warnings()
+
 def make_url(host, path):
     url = host
     if path.startswith("/"):
@@ -27,9 +30,6 @@ class SessionClient:
     def load_session(self, verbose=False):
         self.session = requests.Session()
         self.session.verify = False
-        from urllib3.exceptions import InsecureRequestWarning
-        from urllib3 import disable_warnings
-        disable_warnings(InsecureRequestWarning)
 
         # This is for verbose debugging
         if verbose:
@@ -111,7 +111,7 @@ class SessionClient:
         resp = self.session.post(url, json={}, headers={"Authorization": f"Bearer {access_token}"})
         resp = resp.json()
         if resp.get("responsecode", False) in (False, "false", "False"):
-            print(resp["msg"])
+            print(resp)
             return
         admin_settings = resp["admin_settings"]
         proxy_table = admin_settings["proxy_table"]

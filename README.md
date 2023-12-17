@@ -7,7 +7,7 @@ Welcome to the CLI tools for DagKnows.  With this you can manage all your dags, 
 Install the cli with:
 
 ```
-pip install dagknows
+pip install dagknows --force-reinstall -U
 ```
 
 ## Setup your account
@@ -17,13 +17,7 @@ DagKnows uses the auth token associated with your organization and account.  You
 To use an existing token simply do:
 
 ```
-dk init --access-token <EXISTING_ACCESS_TOKEN>
-```
-
-You can also login to get a fresh one:
-
-```
-dk login ORG
+dk config init
 ```
 
 Here you will be prompted for your org's username and password.

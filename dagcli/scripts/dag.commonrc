@@ -64,9 +64,14 @@ dagknows_preexec() {
           mv $CMDFILE "${CMDFILE}.bak"
         fi
       else
-        if [ x"$SHELL" = x"/bin/bash" ]; then
-          echo "PROMPT: " "'${PS1@P}'" " CMD: " $*  >> $CMDFILE
-        else
+        system=`uname`
+        if [ x"$SHELL" = "x/bin/bash" ]; then
+          if [ x"$system" = "xDarwin" ]; then
+            echo "PROMPT: " "'${SESSION}'" " CMD: " $*  >> $CMDFILE
+          else
+            echo "PROMPT: " "'${PS1@P}'" " CMD: " $*  >> $CMDFILE
+          fi
+        else  # zsh
           echo "PROMPT: " "'${(%%)PS1}'" " CMD: " $1  >> $CMDFILE
         fi
       fi

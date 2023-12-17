@@ -1,4 +1,4 @@
-import typer, yaml, json, os
+import typer, yaml, json, os, logging
 from pprint import pprint
 from boltons.iterutils import remap
 from rich import print as rprint
@@ -6,6 +6,17 @@ from rich.tree import Tree
 import psutil
 
 ALLOWED_SHELLS = ["bash", "zsh"]
+
+def disable_urllib_warnings():
+    from urllib3 import disable_warnings
+    from urllib3.exceptions import NotOpenSSLWarning
+    disable_warnings(NotOpenSSLWarning)
+    from urllib3.exceptions import InsecureRequestWarning
+    disable_warnings(InsecureRequestWarning)
+    from urllib3.exceptions import InsecurePlatformWarning
+    disable_warnings(InsecurePlatformWarning)
+    logging.getLogger('urllib3').setLevel(logging.CRITICAL)
+    logging.getLogger('requests').setLevel(logging.CRITICAL)
 
 def get_curr_shell():
     currproc = psutil.Process(os.getppid())

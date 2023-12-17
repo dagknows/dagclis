@@ -3,9 +3,8 @@ from dagcli.configs import DagKnowsConfig
 from dagcli.client import newapi
 import json, os, sys
 
-from urllib3.exceptions import InsecureRequestWarning
-from urllib3 import disable_warnings
-disable_warnings(InsecureRequestWarning)
+from dagcli.utils import disable_urllib_warnings
+disable_urllib_warnings()
 
 app = typer.Typer(pretty_exceptions_show_locals=False)
 
