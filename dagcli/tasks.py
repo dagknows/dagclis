@@ -69,7 +69,7 @@ def join(ctx: typer.Context,
 
 @app.command()
 def run(ctx: typer.Context,
-        taskid: str = typer.Argument(..., help = "ID of the task to clone"),
+        taskid: str = typer.Argument(..., help = "ID of the task to execute"),
         proxy_alias: str= typer.Option("", help="Alias of the proxy to execute on", envvar="DagKnowsProxyAlias"),
         proxy_token: str= typer.Option("", help="Token of the proxy to execute on", envvar="DagKnowsProxyToken"),
         params: str = typer.Option(None, help = "Json dictionary of parameters"),
@@ -79,7 +79,7 @@ def run(ctx: typer.Context,
         num_times: int = typer.Option(0, help = "How many times to repeat"),
         interval: int = typer.Option(-1, help = "How often to repeat the job in between.  -ve => no repetitions"),
         interval_type: str = typer.Option("seconds", help = "Interval type - 'seconds', 'minutes', 'hours', 'days'"),
-        file: typer.FileText = typer.Option(None, help = "File containing a json of the parametres")):
+        file: typer.FileText = typer.Option(None, help = "File containing a json of the parameters")):
     """ Execute a task. """
     job = {
         "proxy_alias": proxy_alias,
@@ -257,3 +257,9 @@ def push(ctx: typer.Context,
     resp = newapi(ctx.obj, f"/tasks/{task_id}/push/", payload=payload, method="GET", apihost=None)
 
     present(ctx, resp)
+
+@app.command()
+def compile(ctx: typer.Context,
+            taskid: str = typer.Argument(..., help = "ID of the task to compile")):
+    """ Compile a task and get its executable form. """
+    present(ctx, newapi(ctx.obj, f"/tasks/{taskid}/compile/"))

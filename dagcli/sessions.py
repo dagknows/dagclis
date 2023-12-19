@@ -121,16 +121,18 @@ def flush(ctx: typer.Context,
     # Read the typescript file
     blobfile = ctx.obj.getpath(f"sessions/{session_id}/cliblob", is_dir=False)
     if not os.path.isfile(blobfile): return
-    cliblobs = open(blobfile).read()
-    cliblobb64 = base64.b64encode(cliblobs.encode()).decode().strip("\n")
+    cliblobs = open(blobfile, "rb").read()
+    # cliblobb64 = base64.b64encode(cliblobs.encode()).decode().strip("\n")
+    cliblobb64 = base64.b64encode(cliblobs).decode().strip("\n")
     if not cliblobb64: return
 
     # Do same with commands
     cmdfile = ctx.obj.getpath(f"sessions/{session_id}/commands", is_dir=False)
     if not os.path.isfile(cmdfile):
         return
-    cmdblobs = open(cmdfile).read()
-    cmdblobb64 = base64.b64encode(cmdblobs.encode()).decode().strip("\n")
+    cmdblobs = open(cmdfile, "rb").read()
+    # cmdblobb64 = base64.b64encode(cmdblobs.encode()).decode().strip("\n")
+    cmdblobb64 = base64.b64encode(cmdblobs).decode().strip("\n")
     if not cmdblobb64: return
  
     # Construct the request

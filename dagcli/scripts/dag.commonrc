@@ -67,7 +67,7 @@ dagknows_preexec() {
         system=`uname`
         if [ x"$SHELL" = "x/bin/bash" ]; then
           if [ x"$system" = "xDarwin" ]; then
-            echo "PROMPT: " "'${SESSION}'" " CMD: " $*  >> $CMDFILE
+            echo "PROMPT: " "'${SESSION}'" " CMD: " $*  > $CMDFILE
           else
             echo "PROMPT: " "'${PS1@P}'" " CMD: " $*  >> $CMDFILE
           fi
