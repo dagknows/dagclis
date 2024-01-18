@@ -14,8 +14,7 @@ app = typer.Typer()
 @app.command()
 def create(ctx: typer.Context,
         group_label: str = typer.Argument(..., help = "Name of the host group to create"),
-        hosts: List[str] = typer.Argument(None, help = "List of all hosts in the group"),
-        addrs: List[str] = typer.Argument(..., help="List of Machine IP Addresss to add, eg 203.10.12.44")):
+        hosts: List[str] = typer.Argument(None, help = "List of all hosts or IPs in the group")):
     vapi = ctx.obj.vault_api
     vapi.create_host_group(group_label, hosts)
     print(f"Created host group {group_label} with hosts: ", hosts or [])
@@ -48,7 +47,7 @@ def addhosts(ctx: typer.Context,
              group_label: str = typer.Argument(..., help = "Name of the host group to add hosts to"),
              hosts: List[str] = typer.Argument(None, help = "List of all hosts to add to the group")):
     vapi = ctx.obj.vault_api
-    cur_groups = vapi.list_host_groups()
+    curr_groups = vapi.list_host_groups()
     if group_label not in curr_groups:
         ctx.fail(f"Group {group_label} does not exist.  Create it first")
     else:
@@ -60,6 +59,5 @@ def deletehosts(ctx: typer.Context,
                 group_label: str = typer.Argument(..., help = "Name of the host group to remove hosts from"),
                 hosts: List[str] = typer.Argument(None, help = "List of all hosts to remove from the group")):
     vapi = ctx.obj.vault_api
-    print("Deleted the label: " + url_label)
     vapi.delete_hosts_from_group(group_label, hosts or [])
     print("Deleted: ", hosts, " from group: " + group_label)

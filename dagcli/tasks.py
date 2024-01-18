@@ -70,6 +70,7 @@ def join(ctx: typer.Context,
 @app.command()
 def run(ctx: typer.Context,
         taskid: str = typer.Argument(..., help = "ID of the task to execute"),
+        runbook_task_id: str = typer.Option("", help = "ID of the top level runbook being executed.  Will default to taskid"),
         proxy_alias: str= typer.Option("", help="Alias of the proxy to execute on", envvar="DagKnowsProxyAlias"),
         proxy_token: str= typer.Option("", help="Token of the proxy to execute on", envvar="DagKnowsProxyToken"),
         params: str = typer.Option(None, help = "Json dictionary of parameters"),

@@ -133,7 +133,7 @@ class dagknows_proxy_vault():
     
         #TODO: check sanity of the cred_label, ensure it is valid
         for ip_addr in ip_addresses:
-            if not re.match("^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", ip_addr):
+            if not re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", ip_addr):
                 print("ERROR: Skipping bad IP address: ", ip_addr, file=sys.stderr)
                 sys.stderr.flush()
                 continue
@@ -157,7 +157,7 @@ class dagknows_proxy_vault():
 
     def delete_ip_addr(self, ip_addresses):
         for ip_addr in ip_addresses:
-            if not re.match("^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", ip_addr):
+            if not re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", ip_addr):
                 print("ERROR: Skipping bad IP address: ", ip_addr, file=sys.stderr)
                 sys.stderr.flush()
                 continue
@@ -245,11 +245,12 @@ class dagknows_proxy_vault():
                 mount_point='allusers_secrets'
             )
             cur_hosts = resp['data']['data']
-            host_list_tmp = []
-            if "," in hosts:
-                host_list_tmp = hosts.split(',')
-            else:
-                host_list_tmp = hosts.split('\s')
+            host_list_tmp = 
+            if type(hosts) is str:
+                if "," in hosts:
+                    host_list_tmp = hosts.split(',')
+                else:
+                    host_list_tmp = hosts.split('\s')
 
             host_list = [x.strip() for x in host_list_tmp]
         
