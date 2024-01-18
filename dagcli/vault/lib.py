@@ -245,12 +245,12 @@ class dagknows_proxy_vault():
                 mount_point='allusers_secrets'
             )
             cur_hosts = resp['data']['data']
-            host_list_tmp = 
+            host_list_tmp = hosts
             if type(hosts) is str:
                 if "," in hosts:
                     host_list_tmp = hosts.split(',')
                 else:
-                    host_list_tmp = hosts.split('\s')
+                    host_list_tmp = hosts.split(r'\s')
 
             host_list = [x.strip() for x in host_list_tmp]
         
