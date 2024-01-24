@@ -79,12 +79,12 @@ def get(ctx: typer.Context,
     vapi = ctx.obj.vault_api
     if role:
         creds = vapi.get_credentials(role, cred_label)
-        if "ssh_key" in creds: creds.pop("ssh_key")
-        print(creds)
+        ## if "ssh_key" in creds: creds.pop("ssh_key")
+        print("Creds: ", creds)
     else:
         all_roles = vapi.list_roles()
         for role in all_roles:
             creds = vapi.get_credentials(role, cred_label)
             if creds:
-                if "ssh_key" in creds: creds.pop("ssh_key")
-                print(f"{role}: ", creds)
+                ## if "ssh_key" in creds: creds.pop("ssh_key")
+                print(f"Creds for {role}: ", creds)
