@@ -80,7 +80,7 @@ def get(ctx: typer.Context,
     if role:
         creds = vapi.get_credentials(role, cred_label)
         ## if "ssh_key" in creds: creds.pop("ssh_key")
-        print("All Creds: ", json.dumps(creds, indent=2))
+        print(f"Creds for {role}: ", json.dumps(creds, indent=2))
     else:
         all_roles = vapi.list_roles()
         for role in all_roles:
