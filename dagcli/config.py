@@ -29,6 +29,8 @@ def init(ctx: typer.Context,
     if not api_host:
         api_host = typer.prompt("Enter the api host to make api calls to: ", default="http://localhost")
     if not api_host.endswith("/api") and not api_host.endswith("/api/"):
+        if api_host.endswith("/"):
+            api_host = api_host[:-1]
         api_host += "/api"
     profile_data["api_host"] = api_host
 
