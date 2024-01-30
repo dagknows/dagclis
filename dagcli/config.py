@@ -27,7 +27,9 @@ def init(ctx: typer.Context,
     profile_data = dkconfig.profile_data
 
     if not api_host:
-        api_host = typer.prompt("Enter the api host to make api calls to: ", default="http://localhost/api")
+        api_host = typer.prompt("Enter the api host to make api calls to: ", default="http://localhost")
+    if not api_host.endswith("/api") and not api_host.endswith("/api/"):
+        api_host += "/api"
     profile_data["api_host"] = api_host
 
     if not access_token:

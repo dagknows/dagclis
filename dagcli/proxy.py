@@ -23,8 +23,9 @@ def new(ctx: typer.Context,
     resp = requests.post(url, json=payload, headers=ctx.obj.headers, verify=False)
     print("Proxy created successfully: ", label)
     print("Next steps:")
-    print(f"1. dk proxy get {label}")
-    print(f"2. cd {label}")
+    print(f"1. If you have not already cloned the proxy repo: ")
+    print(f"     git clone https://github.com/dagknows/dkproxy.git")
+    print(f"2. cd dkproxy")
     print(f"3. dk proxy getenv {label}")
     print(f"4. dk proxy update")
 
