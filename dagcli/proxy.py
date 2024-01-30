@@ -27,7 +27,8 @@ def new(ctx: typer.Context,
     print(f"     git clone https://github.com/dagknows/dkproxy.git")
     print(f"2. cd dkproxy")
     print(f"3. dk proxy getenv {label}")
-    print(f"4. dk proxy update")
+    print(f"4. make pull")
+    print(f"5. make up logs")
 
 @app.command()
 def update(ctx: typer.Context,
