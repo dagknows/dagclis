@@ -1,6 +1,6 @@
 import subprocess
 import typer
-import os
+import os, sys
 from typing import List
 import requests
 
@@ -133,3 +133,46 @@ def delete(ctx: typer.Context, label: str = typer.Argument(..., help="Label of t
     resp = sesscli.delete_proxy(label, ctx.obj.access_token)
     if resp.get("responsecode", False) in (False, "false", "False"):
         print(resp["msg"])
+
+@app.command()
+def initk8s(ctx: typer.Context,
+            env_file: typer.FileText = typer.Argument("./.env", help = "Env file for your proxy.  If you do not have one then run the `dk getenv` command"),
+            dest_dir: str = typer.Argument(None, help = "Destination folder where k8s files will be generated for your proxy.  If not provided `./proxies/<PROXY_ALIAS>` will be used"),
+            local_pv_root: str = typer.Option(None, help = "Root folder of the local PVs.  Will default to '<dest_dir>/localpv'"),
+            k8s_namespace: str = typer.Option(None, help = "Namespace for your proxy.  A proxy will be created within a particular namespace in the selected cluster.  If a namespace is not provided then `proxy-<PROXY_ALIAS>` will be used")):
+    if not os.path.isdir("./templates"):
+        raise Exception("Please run this command from your dkproxy/k8s_build folder")
+
+    envvars = {}
+    envfile = env_file.read()
+    for l in [l.strip() for l in envfile.split("\n") if l.strip()]:
+        eqpos = l.find("=")
+        if eqpos < 0: continue
+        key, value = l[:eqpos].strip(), l[eqpos + 1:].strip()
+        envvars[key] = value
+
+    if not dest_dir: dest_dir = f"./proxies/{envvars['PROXY_ALIAS']}"
+    if not local_pv_root: local_pv_root = os.path.join(os.path.abspath(dest_dir), "localpv")
+    if not k8s_namespace: k8s_namespace = f"proxy-{envvars['PROXY_ALIAS']}"
+
+    # Create basic dirs and copy files
+    os.makedirs(dest_dir, exist_ok=True)
+    os.makedirs(local_pv_root, exist_ok=True)
+    os.makedirs(os.path.join(dest_dir, "vault", "config", "ssl"), exist_ok=True)
+    with open(os.path.join(dest_dir, "vault", "config", "local.json"), "w") as f: f.write(open("../vault/config/local.json").read())
+    with open(os.path.join(dest_dir, "vault", "config", "ssl", "vault.crt"), "w") as f: f.write(open("../vault/config/ssl/vault.crt").read())
+    with open(os.path.join(dest_dir, "vault", "config", "ssl", "vault.key"), "w") as f: f.write(open("../vault/config/ssl/vault.key").read())
+
+    # Save the env file too
+    with open(os.path.join(dest_dir, ".env"), "w") as outenvfile: outenvfile.write(envfile)
+
+
+    for tmplfile in os.listdir("./templates"):
+        tf = open(os.path.join("./templates", tmplfile)).read()
+        ofpath = os.path.join(dest_dir, tmplfile)
+        with open(ofpath, "w") as outfile:
+            tf = tf.replace("{{PROXY_NAMESPACE}}", k8s_namespace)
+            tf = tf.replace("{{LOCAL_PV_ROOT}}", local_pv_root)
+            for k,v in envvars.items():
+                tf = tf.replace("{{" + k + "}}", v)
+            outfile.write(tf)
