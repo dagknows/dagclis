@@ -139,6 +139,9 @@ def initk8s(ctx: typer.Context,
             env_file: typer.FileText = typer.Argument("./.env", help = "Env file for your proxy.  If you do not have one then run the `dk getenv` command"),
             dest_dir: str = typer.Argument(None, help = "Destination folder where k8s files will be generated for your proxy.  If not provided `./proxies/<PROXY_ALIAS>` will be used"),
             local_pv_root: str = typer.Option(None, help = "Root folder of the local PVs.  Will default to '<dest_dir>/localpv'"),
+            sidecar_root: str = typer.Option("/app/sidecar", help = "Root folder for our sidecar libs"),
+            pyrunner_root: str = typer.Option(None, help = "Root folder for pyrunner related files.  Will default to <sidecar_root>/pyrunner"),
+            pyenv_root: str = typer.Option(None, help = "Root folder for pyenv related files.  Will default to <pyrunner_root>/pyenv"),
             k8s_namespace: str = typer.Option(None, help = "Namespace for your proxy.  A proxy will be created within a particular namespace in the selected cluster.  If a namespace is not provided then `proxy-<PROXY_ALIAS>` will be used")):
     if not os.path.isdir("./templates"):
         raise Exception("Please run this command from your dkproxy/k8s_build folder")
@@ -155,17 +158,20 @@ def initk8s(ctx: typer.Context,
     if not local_pv_root: local_pv_root = os.path.join(os.path.abspath(dest_dir), "localpv")
     if not k8s_namespace: k8s_namespace = f"proxy-{envvars['PROXY_ALIAS']}"
 
+    pyrunner_root = pyrunner_root or f"{sidecar_root}/pyrunner"
+    pyenv_root = pyenv_root or f"{pyrunner_root}/pyenv"
+
     # Create basic dirs and copy files
     os.makedirs(dest_dir, exist_ok=True)
     os.makedirs(local_pv_root, exist_ok=True)
     os.makedirs(os.path.join(dest_dir, "vault", "config", "ssl"), exist_ok=True)
-    with open(os.path.join(dest_dir, "vault", "config", "local.json"), "w") as f: f.write(open("../vault/config/local.json").read())
+    with open(os.path.join(dest_dir, "vault", "config", "local.json"), "w") as f: f.write(open("./vault/config/local.json").read())
     with open(os.path.join(dest_dir, "vault", "config", "ssl", "vault.crt"), "w") as f: f.write(open("../vault/config/ssl/vault.crt").read())
     with open(os.path.join(dest_dir, "vault", "config", "ssl", "vault.key"), "w") as f: f.write(open("../vault/config/ssl/vault.key").read())
 
-    # Save the env file too
-    with open(os.path.join(dest_dir, ".env"), "w") as outenvfile: outenvfile.write(envfile)
-
+    envvars["SIDECAR_ROOT"] = sidecar_root
+    envvars["PYENV_ROOT"] = pyenv_root
+    envvars["PYRUNNER_ROOT"] = pyrunner_root
 
     for tmplfile in os.listdir("./templates"):
         tf = open(os.path.join("./templates", tmplfile)).read()
@@ -176,3 +182,7 @@ def initk8s(ctx: typer.Context,
             for k,v in envvars.items():
                 tf = tf.replace("{{" + k + "}}", v)
             outfile.write(tf)
+
+    # Save the updated env file too
+    with open(os.path.join(dest_dir, ".env"), "w") as outenvfile:
+        outenvfile.write("\n".join([f"{k}={v}" for k,v in envvars.items()]))
