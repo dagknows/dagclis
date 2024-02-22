@@ -96,6 +96,15 @@ class TaskNode:
                 t.content = ""
                 self.children.append(t)
                 """
+                if nt == "list": 
+                    # then prepend the "bullet" to the first RawText child we find
+                    for listchild in node.children:
+                        rt = listchild
+                        while rt and rt.children and rt.get_type() != 'RawText':
+                            rt = rt.children[0]
+                        if rt and rt.get_type() == "RawText":
+                            rt.children = "\n" + node.bullet + " " + rt.children
+
                 for ch in node.children:
                     self.process_mdnode(ch)
         elif nt in ("blankline", "linebreak", "codespan", "thematicbreak", "rawtext", "link", "emphasis"):
@@ -207,12 +216,14 @@ def node2task(ctx, node, taskid=None):
                     task_params["title"] = f"Step {len(childids) + 1}"
                     task_params["description"] = chnode.content
                 if i + 1 < len(node.children) and node.children[i + 1].node_type == "code":
-                    task_params["commands"] = [node.children[i + 1].content]
+                    task_params["commands"] = [node.children[i + 1].content.strip()]
                     task_params["script_type"] = "command"
                     i += 1
                 i += 1
 
-                if i >= len(node.children) and len(childids) == 0:
+                if len(childids) == 0 and not nodetask.get("description", "") and not (nodetask.get("commands", [])) and (
+                        i >= len(node.children) # or node.children[i].node_type is "heading"
+                    ):
                     # Only 1 child - what can we do here?
                     # Only 1 child - just set the parent's desc + code to be this
                     nodetask["description"] = chnode.content
@@ -230,12 +241,12 @@ def node2task(ctx, node, taskid=None):
                 using_auto_title = True
                 task_params["id"] = childid
                 task_params["title"] = "Run the following: "
-                task_params["commands"] = [chnode.content]
+                task_params["commands"] = [chnode.content.strip()]
                 task_params["script_type"] = "command"
                 i += 1
                 if i >= len(node.children) and len(childids) == 0 and not nodetask.get("description", "") and not (nodetask.get("commands", [])):
                     # Only 1 child - just set the parent's desc + code to be this
-                    nodetask["commands"] = [chnode.content]
+                    nodetask["commands"] = [chnode.content.strip()]
                     nodetask["script_type"] = "command"
                     resp = newapi(ctx.obj, f"/tasks/{taskid}", {
                         "task": nodetask,
