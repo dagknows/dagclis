@@ -53,6 +53,9 @@ class TaskNode:
         self.mdnode = None
         self.node_type = ""
         self.content = ""
+        self.title = None
+        self.description = None
+        self.code = None
         self.children = []
 
     @property
@@ -164,14 +167,13 @@ def mdfile(ctx: typer.Context,
         currnode = currnode.process_mdnode(node) or currnode
 
     # Step 1 - Delete this taskid and all its children recursively
-    newapi(ctx.obj, f"/tasks/{taskid}?recurse=true", None, "DELETE")
-
     root = currnode.root
     roottask = node2task(ctx, root, taskid)
     root.print()
 
-# Step 2 - Create this now
 def node2task(ctx, node, taskid=None):
+    if taskid:
+        newapi(ctx.obj, f"/tasks/{taskid}?recurse=true", None, "DELETE")
     print("Creating Task for Node: ", node.node_type, node.content)
     assert node.node_type == "heading", "Node type here *must* be a heading"
     # debug()
@@ -185,30 +187,63 @@ def node2task(ctx, node, taskid=None):
     while i < len(node.children):
         chnode = node.children[i]
         task_params = {}
-        if chnode.node_type == "text":
-            # good we can get this and the code after this (if it exists)
-            if len(chnode.content) < 80:
-                task_params["title"] = chnode.content
-            else:
-                task_params["title"] = f"Step {len(childids) + 1}"
-                task_params["description"] = chnode.content
-            if i + 1 < len(node.children) and node.children[i + 1].node_type == "code":
-                task_params["commands"] = [node.children[i + 1].content]
+        childid = f"{taskid}_{len(childids)}"
+        if chnode.node_type == "heading":
+            chtask = node2task(ctx, chnode, childid)
+            childids.append(chtask["id"])
+            i += 1
+        else: # leaf node
+            # if we only have 1 child - then make it part of "us"
+            # by setting child's content as our description and code as our code
+            # unless it has a "custom" title
+            using_auto_title = False
+            if chnode.node_type == "text":
+                # good we can get this and the code after this (if it exists)
+                task_params["id"] = childid
+                if len(chnode.content) < 80:
+                    task_params["title"] = chnode.content
+                else:
+                    using_auto_title = True
+                    task_params["title"] = f"Step {len(childids) + 1}"
+                    task_params["description"] = chnode.content
+                if i + 1 < len(node.children) and node.children[i + 1].node_type == "code":
+                    task_params["commands"] = [node.children[i + 1].content]
+                    task_params["script_type"] = "command"
+                    i += 1
+                i += 1
+
+                if i >= len(node.children) and len(childids) == 0:
+                    # Only 1 child - what can we do here?
+                    # Only 1 child - just set the parent's desc + code to be this
+                    nodetask["description"] = chnode.content
+                    nodetask["commands"] = task_params.get("commands", [])
+                    nodetask["script_type"] = "command"
+                    resp = newapi(ctx.obj, f"/tasks/{taskid}", {
+                        "task": nodetask,
+                        "update_mask": ["commands", "script_type", "description"]
+                    }, "PATCH")
+                else:
+                    chtask = newapi(ctx.obj, "/tasks/", { "task": task_params }, "POST")
+                    childids.append(chtask["task"]["id"])
+            elif chnode.node_type == "code":
+                # This was *not* preceeded by a text so create a "step" node
+                using_auto_title = True
+                task_params["id"] = childid
+                task_params["title"] = "Run the following: "
+                task_params["commands"] = [chnode.content]
                 task_params["script_type"] = "command"
                 i += 1
-            chtask = newapi(ctx.obj, "/tasks/", { "task": task_params }, "POST")
-            childids.append(chtask["task"]["id"])
-        elif chnode.node_type == "code":
-            # This was *not* preceeded by a text so create a "step" node
-            task_params["title"] = "Run the following: "
-            task_params["commands"] = [chnode.content]
-            task_params["script_type"] = "command"
-            chtask = newapi(ctx.obj, "/tasks/", { "task": task_params }, "POST")
-            childids.append(chtask["task"]["id"])
-        else: # heading
-            chtask = node2task(ctx, chnode)
-            childids.append(chtask["id"])
-        i += 1
+                if i >= len(node.children) and len(childids) == 0 and not nodetask.get("description", "") and not (nodetask.get("commands", [])):
+                    # Only 1 child - just set the parent's desc + code to be this
+                    nodetask["commands"] = [chnode.content]
+                    nodetask["script_type"] = "command"
+                    resp = newapi(ctx.obj, f"/tasks/{taskid}", {
+                        "task": nodetask,
+                        "update_mask": ["commands", "script_type"]
+                    }, "PATCH")
+                else:
+                    chtask = newapi(ctx.obj, "/tasks/", { "task": task_params }, "POST")
+                    childids.append(chtask["task"]["id"])
 
     # Now save subtaskids
     if childids:
