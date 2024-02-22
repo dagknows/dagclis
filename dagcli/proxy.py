@@ -134,82 +134,68 @@ def delete(ctx: typer.Context, label: str = typer.Argument(..., help="Label of t
     if resp.get("responsecode", False) in (False, "false", "False"):
         print(resp["msg"])
 
-@app.command()
-def initk8s(ctx: typer.Context,
-            env_file: typer.FileText = typer.Argument("./.env", help = "Env file for your proxy.  If you do not have one then run the `dk getenv` command"),
-            dest_dir: str = typer.Argument(None, help = "Destination folder where k8s files will be generated for your proxy.  If not provided `./proxies/<PROXY_ALIAS>` will be used"),
-            storage_type: str = typer.Option("local", help = "Storage type - options: 'local', 'efs'"),
-            efs_fs_id: str = typer.Option("", help = "Filesystem ID of the EFS volume if using EFS for storage"),
-            eks_cluster_name: str = typer.Option("", help = "Name of the EKS cluster to run against.  Will be needed if storage_type is efs"),
-            aws_region: str = typer.Option("us-east-2", help = "Region to use if using AWS"),
-            local_pv_root: str = typer.Option(None, help = "Root folder of the local PVs.  Will default to '<dest_dir>/localpv'"),
-            minikube_mount_root: str = typer.Option("/minikubemount", help = "Folder on the Minikube VM where the storage will be mounted to local_pv_root on"),
-            sidecar_root: str = typer.Option("/app/sidecar", help = "Root folder for our sidecar libs"),
-            pyrunner_root: str = typer.Option(None, help = "Root folder for pyrunner related files.  Will default to <sidecar_root>/pyrunner"),
-            pyenv_root: str = typer.Option(None, help = "Root folder for pyenv related files.  Will default to <pyrunner_root>/pyenv"),
-            k8s_namespace: str = typer.Option(None, help = "Namespace for your proxy.  A proxy will be created within a particular namespace in the selected cluster.  If a namespace is not provided then `proxy-<PROXY_ALIAS>` will be used")):
-    if not os.path.isdir("./templates"):
-        raise Exception("Please run this command from your dkproxy/k8s_build folder")
-
+def parse_envfile(envfiledata):
     envvars = {}
-    envfile = env_file.read()
-    for l in [l.strip() for l in envfile.split("\n") if l.strip()]:
+    for l in [l.strip() for l in envfiledata.split("\n") if l.strip()]:
+        if l.startswith("#"): continue
         eqpos = l.find("=")
         if eqpos < 0: continue
         key, value = l[:eqpos].strip(), l[eqpos + 1:].strip()
         envvars[key] = value
+    return envvars
 
-    if not dest_dir: dest_dir = f"./proxies/{envvars['PROXY_ALIAS']}"
-    if not local_pv_root: local_pv_root = os.path.join(os.path.abspath(dest_dir), "localpv")
-    if not k8s_namespace: k8s_namespace = f"proxy-{envvars['PROXY_ALIAS']}"
+@app.command()
+def initk8s(ctx: typer.Context,
+            env_file: typer.FileText = typer.Argument("./.env", help = "Env file for your proxy.  If you do not have one then run the `dk getenv` command"),
+            params_file: typer.FileText = typer.Argument("./params", help = "Parameters file contain all the params for generated files"),
+            dest_dir: str = typer.Argument(None, help = "Destination folder where k8s files will be generated for your proxy.  If not provided `./proxies/<PROXY_ALIAS>` will be used"),
+            storage_type: str = typer.Option("local", help = "Storage type - options: 'local', 'efs', 'multiefs'")):
+    if not os.path.isdir("./templates"):
+        raise Exception("Please run this command from your dkproxy/k8s_build folder")
 
-    pyrunner_root = pyrunner_root or f"{sidecar_root}/pyrunner"
-    pyenv_root = pyenv_root or f"{pyrunner_root}/pyenv"
+    paramvars = parse_envfile(params_file.read())
+    envvars = parse_envfile(env_file.read())
+
+    allparams = envvars.copy()
+    allparams.update(paramvars)
+
+    if not dest_dir: dest_dir = f"./proxies/{allparams['PROXY_ALIAS']}"
+
+    if not allparams.get("PROXY_NAMESPACE", ""):
+        allparams["PROXY_NAMESPACE"] = f"proxy-{allparams['PROXY_ALIAS']}"
 
     # Create basic dirs and copy files
     os.makedirs(dest_dir, exist_ok=True)
-    os.makedirs(local_pv_root, exist_ok=True)
     os.makedirs(os.path.join(dest_dir, "vault", "config", "ssl"), exist_ok=True)
     with open(os.path.join(dest_dir, "vault", "config", "local.json"), "w") as f: f.write(open("./vault/config/local.json").read())
     with open(os.path.join(dest_dir, "vault", "config", "ssl", "vault.crt"), "w") as f: f.write(open("../vault/config/ssl/vault.crt").read())
     with open(os.path.join(dest_dir, "vault", "config", "ssl", "vault.key"), "w") as f: f.write(open("../vault/config/ssl/vault.key").read())
 
-    envvars["SIDECAR_ROOT"] = sidecar_root
-    envvars["PYENV_ROOT"] = pyenv_root
-    envvars["PYRUNNER_ROOT"] = pyrunner_root
-    envvars["PROXY_NAMESPACE"] = k8s_namespace
-    envvars["LOCAL_PV_ROOT"] = local_pv_root
-    envvars["MINIKUBE_MOUNT_ROOT"] = minikube_mount_root
-    envvars["EFS_FILESYSTEM_ID"] = efs_fs_id
-    envvars["EKS_CLUSTER_NAME"] = eks_cluster_name
-    envvars["AWS_REGION"] = aws_region
-
-    if storage_type == "efs":
-        assert efs_fs_id not in ("", None), "efs_fs_id param must be specified if storage type is efs"
-        assert eks_cluster_name not in ("", None), "eks_cluster_name param must be specified if storage type is efs"
-        assert aws_region not in ("", None), "aws_region param must be specified if storage type is efs"
+    if storage_type == "local":
+        if not allparams.get("LOCAL_PV_ROOT", ""):
+            allparams["LOCAL_PV_ROOT"] = os.path.join(os.path.abspath(dest_dir), "localpv")
+        os.makedirs(allparams["LOCAL_PV_ROOT"], exist_ok=True)
 
     for tmplfile in os.listdir("./templates"):
         if tmplfile in ("storage",): continue
+        print("Processing: ", tmplfile)
         tf = open(os.path.join("./templates", tmplfile)).read()
         ofpath = os.path.join(dest_dir, tmplfile)
         with open(ofpath, "w") as outfile:
-            for k,v in envvars.items():
+            for k,v in allparams.items():
                 tf = tf.replace("{{" + k + "}}", v)
             outfile.write(tf)
 
     # Storage specific things
     for tmplfile in os.listdir(f"./templates/storage/{storage_type}"):
+        print("Processing: ", tmplfile)
         tf = open(os.path.join("./templates/storage", storage_type, tmplfile)).read()
         ofpath = os.path.join(dest_dir, tmplfile)
         with open(ofpath, "w") as outfile:
-            for k,v in envvars.items():
+            for k,v in allparams.items():
                 tf = tf.replace("{{" + k + "}}", v)
             outfile.write(tf)
 
     # Save the updated env file too
     with open(os.path.join(dest_dir, ".env"), "w") as outenvfile:
-        outenvfile.write("\n".join([f"{k}={v}" for k,v in envvars.items()]))
-
-    # Save daglib too
-    # with open(os.path.join(dest_dir, "daglib.py"), "w") as daglibfile: daglibfile.write(open("../outpost/jobs/daglib.py").read())
+        outenvfile.write("\n".join([f"{k}={v}" for k,v in allparams.items()]))

@@ -20,6 +20,8 @@ hvac==1.1.1
     # via dagknows (pyproject.toml)
 idna==3.4
     # via requests
+marko==2.0.2
+    # via dagknows (pyproject.toml)
 psutil==5.9.5
     # via dagknows (pyproject.toml)
 pygments==2.15.1
