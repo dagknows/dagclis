@@ -222,7 +222,7 @@ def node2task(ctx, node, taskid=None):
                 i += 1
 
                 if len(childids) == 0 and not nodetask.get("description", "") and not (nodetask.get("commands", [])) and (
-                        i >= len(node.children) # or node.children[i].node_type is "heading"
+                        i >= len(node.children) or node.children[i].node_type is "heading"
                     ):
                     # Only 1 child - what can we do here?
                     # Only 1 child - just set the parent's desc + code to be this
