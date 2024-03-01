@@ -51,7 +51,7 @@ def init(ctx: typer.Context,
             all_tokens = sorted([(v["expiry"], v,k) for k,v in resp["data"].items() if not v.get("revoked", False)])
             access_token = all_tokens[-1][2]
         else:
-            access_token = typer.prompt("Enter an access token: ")
+            access_token = typer.prompt("Enter an access token (You can get one from {api_host}/vsettings): ")
 
     profile_data["access_tokens"] = [
         {"value": access_token}
