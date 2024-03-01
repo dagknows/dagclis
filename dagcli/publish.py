@@ -15,8 +15,6 @@ disable_warnings(InsecureRequestWarning)
 
 app = typer.Typer()
 
-from ipdb import set_trace as debug
-
 def render_node(node):
     nt = node.get_type().lower()
     if nt == "paragraph":
@@ -151,7 +149,6 @@ class TaskNode:
                     pnode.children.append(t)
                     return t
         else:
-            import ipdb ; ipdb.set_trace()
             assert False, ("Invalid type: ", node)
 
 @app.command()
