@@ -74,7 +74,7 @@ def ensure_shellconfigs(ctx: typer.Context, shell_type=None):
     added_line = f"source {dk_shell_rc}"
     line_found = (os.path.isfile(usr_shell_rc) and added_line in open(usr_shell_rc).read().split("\n"))
     if not line_found:
-        if Confirm.ask("Would you like to source dagknows shell confings in your {usr_shell_rc} file?", default=True):
+        if True or Confirm.ask("Would you like to source dagknows shell confings in your {usr_shell_rc} file?", default=True):
             with open(usr_shell_rc, "a") as usr_shell_rc_file:
                 usr_shell_rc_file.write(f"\n{added_line}")
                 line_found = True

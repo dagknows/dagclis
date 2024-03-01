@@ -10,7 +10,7 @@ app = typer.Typer()
 @app.command()
 def init(ctx: typer.Context,
          profile: str = typer.Option(None, help = "Name of the profie to initialize.  If not specified uses default profile in DagKnowsHome/"),
-         api_host: str = typer.Option(None, help='API Host to use for this profile'),
+         api_host: str = typer.Option("https://app.dagknows.com", help='API Host to use for this profile'),
          username: str = typer.Option(None, help="Username/Email to login with if access_token not to be entered manually"),
          password: str = typer.Option(None, help="Password to login with if access_token not to be entered manually"),
          access_token: str = typer.Option(None, help='Access token to initialize CLI with for this profile')):
