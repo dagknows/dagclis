@@ -21,7 +21,10 @@ logger.setLevel(logging.DEBUG)
 # log to file
 PLATFORM = platform.uname()
 SYSTEM_NAME = PLATFORM.system.lower()
-ch = logging.FileHandler(f"/tmp/forwarder_{os.getuid()}_{os.getlogin()}_{SYSTEM_NAME}.log")
+try:
+    ch = logging.FileHandler(f"/tmp/forwarder_{os.getuid()}_{os.getlogin()}_{SYSTEM_NAME}.log")
+except:
+    ch = logging.FileHandler(f"/tmp/forwarder_{os.getuid()}_{SYSTEM_NAME}.log")
 ch.setLevel(logging.DEBUG)
 
 # create formatter
