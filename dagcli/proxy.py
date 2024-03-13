@@ -91,11 +91,11 @@ def getenv(ctx: typer.Context,
             ef.write("\n".join(newenv))
 
         # See if k8s config exists
-        k8s_proxy_config = resp.get("k8s_proxy_config", None)
-        if k8s_proxy_config:
-            os.makedirs(f"./k8s/proxies")
-            with open("./k8s/proxies/{label}.tar.gz", wb) as tarball:
-                tarball.write(base64decode(k8s_proxy_config))
+        k8s_proxy_configs = resp.get("k8s_proxy_configs", None)
+        if k8s_proxy_configs:
+            os.makedirs(f"./k8s/proxies", exist_ok=True)
+            with open(f"./k8s/proxies/{label}.tar.gz", 'wb') as tarball:
+                tarball.write(b64decode(k8s_proxy_configs))
     else:
         print("Failed: ", resp.content)
 
