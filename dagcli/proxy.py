@@ -45,14 +45,48 @@ def update(ctx: typer.Context,
     subprocess.run(f"cd {folder} && make update", shell=True)
 
 @app.command()
+def provision(ctx: typer.Context,
+              label: str = typer.Argument(..., help="Label of the new proxy for which to get the environment variable"),
+              org: str= typer.Option("", help="Org to provision proxy for.  Only valid if logged in as superuser org and admin.")):
+    sesscli = ctx.obj.client
+    from dagcli.client import make_url
+    dagknows_url = sesscli.host
+    url = make_url(sesscli.host, "/provisionProxy")
+    if org.strip(): payload = { "alias": label, "fororg": org.strip(), "configs_only": True }
+    resp = requests.post(url, json=payload, headers=ctx.obj.headers, verify=False)
+    if resp.status_code == 200:
+        resp = resp.json()
+    else:
+        print("Failed: ", resp.content)
+
+@app.command()
+def list(ctx: typer.Context, org: str = typer.Argument("", help="Org to fetch proxies for (of admin in super user org)")):
+    """ List proxies on this host. """
+    sesscli = ctx.obj.client
+    from dagcli.client import make_url
+    dagknows_url = sesscli.host
+    url = make_url(sesscli.host, "/getProxyTable")
+    payload = { }
+    if org.strip(): payload = { "fororg": org.strip() }
+    resp = requests.post(url, json=payload, headers=ctx.obj.headers, verify=False)
+    if resp.status_code == 200:
+        for k,v in resp.json().get("_source", {}).get("proxy_table", {}).items():
+            print(k, v)
+            print("")
+    else:
+        print("Failed: ", resp.content)
+
+@app.command()
 def getenv(ctx: typer.Context,
            label: str = typer.Argument(..., help="Label of the new proxy for which to get the environment variable"),
+           org: str= typer.Option("", help="Org to get proxy for.  Only valid if logged in as superuser org and admin."),
            envfile: str= typer.Option("./.env", help="Envfile to update.")):
     sesscli = ctx.obj.client
     from dagcli.client import make_url
     dagknows_url = sesscli.host
     url = make_url(sesscli.host, "/getProxyEnv")
-    payload = { "alias": label }
+    if org.strip(): payload = { "alias": label, "fororg": org.strip() }
+    print("Sending Payload: ", payload)
     resp = requests.post(url, json=payload, headers=ctx.obj.headers, verify=False)
     if resp.status_code == 200:
         resp = resp.json()
@@ -96,6 +130,8 @@ def getenv(ctx: typer.Context,
             os.makedirs(f"./k8s/proxies", exist_ok=True)
             with open(f"./k8s/proxies/{label}.tar.gz", 'wb') as tarball:
                 tarball.write(b64decode(k8s_proxy_configs))
+        else:
+            print("k8s proxy config not found")
     else:
         print("Failed: ", resp.content)
 
@@ -119,17 +155,6 @@ def get(ctx: typer.Context,
         print(p.stderr)
         print(p.stdout)
         subprocess.run(["chmod", "a+rw", os.path.abspath(os.path.join(folder, "vault"))])
-
-@app.command()
-def list(ctx: typer.Context):
-    """ List proxies on this host. """
-    sesscli = ctx.obj.client
-    resp = sesscli.list_proxies(ctx.obj.access_token)
-    for alias, info in resp.items():
-        print("=" * 80)
-        print("Name: ", alias)
-        print("Token: ", info["token"])
-        print("Last Updated At: ", info.get("last_update", ""))
 
 @app.command()
 def delete(ctx: typer.Context, label: str = typer.Argument(..., help="Label of the proxy to delete")):
