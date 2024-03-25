@@ -46,13 +46,14 @@ def update(ctx: typer.Context,
 
 @app.command()
 def provision(ctx: typer.Context,
-              label: str = typer.Argument(..., help="Label of the new proxy for which to get the environment variable"),
-              org: str= typer.Option("", help="Org to provision proxy for.  Only valid if logged in as superuser org and admin.")):
+              org: str= typer.Argument(..., help="Org to provision proxy for.  Only valid if logged in as superuser org and admin."),
+              namespace: str = typer.Argument(..., help="Namespace for the proxy"),
+              label: str = typer.Argument(..., help="Label of the new proxy for which to get the environment variable")):
     sesscli = ctx.obj.client
     from dagcli.client import make_url
     dagknows_url = sesscli.host
     url = make_url(sesscli.host, "/provisionProxy")
-    if org.strip(): payload = { "alias": label, "fororg": org.strip(), "configs_only": True }
+    if org.strip(): payload = { "proxy_namespace": namespace, "alias": label, "fororg": org.strip(), "configs_only": True}
     resp = requests.post(url, json=payload, headers=ctx.obj.headers, verify=False)
     if resp.status_code == 200:
         resp = resp.json()
@@ -85,6 +86,7 @@ def getenv(ctx: typer.Context,
     from dagcli.client import make_url
     dagknows_url = sesscli.host
     url = make_url(sesscli.host, "/getProxyEnv")
+    payload = {"alias": label}
     if org.strip(): payload = { "alias": label, "fororg": org.strip() }
     print("Sending Payload: ", payload)
     resp = requests.post(url, json=payload, headers=ctx.obj.headers, verify=False)
