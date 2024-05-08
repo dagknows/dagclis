@@ -14,6 +14,8 @@ import threading
 from dagcli.utils import disable_urllib_warnings
 disable_urllib_warnings()
 
+SESSION_TYPES = ['clisession', 'chat', 'aisession']
+
 PLATFORM = platform.uname()
 SYSTEM_NAME = PLATFORM.system.lower()
 
@@ -21,10 +23,12 @@ app = typer.Typer()
 
 @app.command()
 def create(ctx: typer.Context,
-           subject: str = typer.Option(..., help = "Subject of the new session")):
+           subject: str = typer.Option(..., help = "Subject of the new session"),
+           conv_type: str = typer.Option("chat", help = "Type of session to create, eg {SESSION_TYPES} etc")):
     """ Create a new session. """
     present(ctx, newapi(ctx.obj, "/v1/sessions", {
         "subject": subject,
+        "conv_type": conv_type,
     }, "POST"))
 
 @app.command()
@@ -48,12 +52,15 @@ def delete(ctx: typer.Context, session_ids: List[str] = typer.Argument(..., help
         present(ctx, newapi(ctx.obj, f"/v1/sessions/{sessionid}", None, "DELETE"), notree=True)
 
 @app.command()
-def search(ctx: typer.Context, subject: str = typer.Option("", help = "Subject to search for Sessions by")):
+def search(ctx: typer.Context,
+           subject: str = typer.Option("", help = "Subject to search for Sessions by"),
+           conv_type: str = typer.Option("chat", help = "Type of session to filter by eg {SESSION_TYPES} etc")):
     """ Search for sessions by subject. """
     if ctx.obj.output_format == "tree": 
         ctx.obj.data["output_format"] = "yaml"
     return present(ctx, newapi(ctx.obj, "/v1/sessions", {
         "title": subject,
+        "conv_type": conv_type,
     }, "GET"))
 
 @app.command()
@@ -104,7 +111,7 @@ def record(ctx: typer.Context,
             ctx.fail("Please enter a valid subject.")
 
     # Todo - create
-    session = newapi(ctx.obj, "/v1/sessions", { "subject": subject, }, "POST")
+    session = newapi(ctx.obj, "/v1/sessions", { "subject": subject, "conv_type": "clisession" }, "POST")
     session_id = session["session"]["id"]
     start_shell(ctx, session_id)
 

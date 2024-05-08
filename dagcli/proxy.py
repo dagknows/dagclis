@@ -53,7 +53,7 @@ def provision(ctx: typer.Context,
     from dagcli.client import make_url
     dagknows_url = sesscli.host
     url = make_url(sesscli.host, "/provisionProxy")
-    if org.strip(): payload = { "proxy_namespace": namespace, "alias": label, "fororg": org.strip(), "configs_only": True}
+    if org.strip(): payload = { "proxy_namespace": namespace, "alias": label, "fororg": org.strip(), "configs_only": False}
     resp = requests.post(url, json=payload, headers=ctx.obj.headers, verify=False)
     if resp.status_code == 200:
         resp = resp.json()

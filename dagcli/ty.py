@@ -15,6 +15,9 @@ from dagcli import forwarder
 app.add_typer(sessions.app, name="sessions", callback=ensure_access_token)
 app.add_typer(messages.app, name="messages", callback=ensure_access_token)
 app.add_typer(tasks.app, name="tasks", callback=ensure_access_token)
+
+# from dagcli import ws as workspaces ; app.add_typer(workspaces.app, name="workspaces", callback=ensure_access_token)
+
 app.add_typer(jobs.app, name="jobs", callback=ensure_access_token)
 app.add_typer(tokens.app, name="tokens", callback=ensure_access_token)
 app.add_typer(run.app, name="run", callback=ensure_access_token)
