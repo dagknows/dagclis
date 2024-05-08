@@ -24,7 +24,7 @@ app = typer.Typer()
 @app.command()
 def create(ctx: typer.Context,
            subject: str = typer.Option(..., help = "Subject of the new session"),
-           conv_type: str = typer.Option("chat", help = "Type of session to create, eg {SESSION_TYPES} etc")):
+           conv_type: str = typer.Option("", help = "Type of session to create, eg {SESSION_TYPES} etc")):
     """ Create a new session. """
     present(ctx, newapi(ctx.obj, "/v1/sessions", {
         "subject": subject,
@@ -54,7 +54,7 @@ def delete(ctx: typer.Context, session_ids: List[str] = typer.Argument(..., help
 @app.command()
 def search(ctx: typer.Context,
            subject: str = typer.Option("", help = "Subject to search for Sessions by"),
-           conv_type: str = typer.Option("chat", help = "Type of session to filter by eg {SESSION_TYPES} etc")):
+           conv_type: str = typer.Option("", help = "Type of session to filter by eg {SESSION_TYPES} etc")):
     """ Search for sessions by subject. """
     if ctx.obj.output_format == "tree": 
         ctx.obj.data["output_format"] = "yaml"
