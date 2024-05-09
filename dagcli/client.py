@@ -143,7 +143,9 @@ class SessionClient:
         resp = self.session.post(url, json=payload)
         return resp.json()
 
-def oldapi(cmd, payload=None, url="https://localhost:443", access_token=""):
+def oldapi(dkconfig: "DagKnowsConfig", cmd, payload=None, access_token="", apihost=None):
+    apihost = apihost or dkconfig.resolve("api_host")
+    url = apihost.replace("/api", "")
     fullurl = f"{url}/{cmd}"
     headers = {"Authorization": f"Bearer {access_token}"}
     resp = requests.post(fullurl, json=payload or {}, headers=headers, verify=False)
