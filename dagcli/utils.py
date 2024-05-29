@@ -8,6 +8,7 @@ import psutil
 ALLOWED_SHELLS = ["bash", "zsh"]
 
 def disable_urllib_warnings():
+    """
     from urllib3 import disable_warnings
     from urllib3.exceptions import NotOpenSSLWarning
     disable_warnings(NotOpenSSLWarning)
@@ -17,6 +18,8 @@ def disable_urllib_warnings():
     disable_warnings(InsecurePlatformWarning)
     logging.getLogger('urllib3').setLevel(logging.CRITICAL)
     logging.getLogger('requests').setLevel(logging.CRITICAL)
+    """
+    pass
 
 def get_curr_shell():
     currproc = psutil.Process(os.getppid())
