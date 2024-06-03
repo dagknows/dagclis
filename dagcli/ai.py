@@ -10,6 +10,7 @@ import requests
 from enum import Enum
 from dagcli import config
 from dagcli.root import common_params, ensure_access_token
+from dagcli.utils import read_envfile
 import random
 import string
 import traceback
@@ -22,6 +23,55 @@ class LLMChoices(str, Enum):
     OPENAI = "openai"
     CLAUDE = "claude"
     LLAMA3 = "llama3"
+
+CONFIGURABLE_TOOLS = {
+    "slack": {
+        "params": [ "SLACK_API_TOKEN" ]
+    },
+    "jira": {
+        "params": [ "JIRA_USER_NAME", "JIRA_API_KEY", "JIRA_BASE_URL" ]
+    },
+    "github": {
+        "params": [ "GITHUB_API_TOKEN", "GITHUB_LOCAL_REPOS", "GITHUB_REPOS_OWNER" ]
+    },
+    "rundeck": {
+        "params": ["RUNDECK_URL", "RUNDECK_API_TOKEN"]
+    },
+    "elk": {
+        "params": ["ELASTIC_URL", "ELASTIC_USER_NAME", "ELASTIC_PASSWORD"]
+    },
+    "servicenow": {
+        "params": ["SNOW_USER_NAME", "SNOW_PASSWORD", "SNOW_URL"]
+    },
+}
+
+@app.command()
+def config(ctx: typer.Context,
+           tool: str = typer.Argument(..., help = f"Name of the tool to configure.  Options: {list(CONFIGURABLE_TOOLS.keys())}"),
+           dagknows_home: str = typer.Option("~/.dagknows", envvar="DagKnowsHomeDir", help="Dir for DagKnows configs"),
+           profile: str = typer.Option(None, envvar="DagKnowsProfile", help="DagKnows profile to use.  To set a default run `dk profiles set-default`"),
+           access_token: str = typer.Option(None, envvar='DagKnowsAccessToken', help='Access token for accessing DagKnows APIs')):
+    if tool not in CONFIGURABLE_TOOLS:
+        print("Invalid tool: ", tool)
+        return
+
+    common_params(ctx, dagknows_home, profile, access_token)
+
+    tools_envfilepath = ctx.obj.getpath("tools_env_vars", profile_relative=False)
+    tools_env = read_envfile(tools_envfilepath)
+
+    from prompt_toolkit import PromptSession
+    prompt_session = PromptSession()
+    
+    for param in CONFIGURABLE_TOOLS.get(tool,{}).get("params", []):
+        user_input = prompt_session.prompt(f"Enter value for {param}: ").strip()
+        tools_env[param] = user_input
+
+    # write back now
+    envvals = [f"{k}={v}" for k,v in tools_env.items()]
+    with open(tools_envfilepath, "w") as tools_envfile:
+        tools_envfile.write("\n".join(envvals))
+
 
 @app.command()
 def ai(ctx: typer.Context,
@@ -58,8 +108,6 @@ class bcolor:
 ask = "ASK" # bcolor.OKBLUE + "ASK: " + bcolor.ENDC
 exe = bcolor.WARNING + "EXEC:" + bcolor.ENDC + "\n"
 dk = bcolor.OKGREEN + "DK: " + bcolor.ENDC + "\n"
-
-DEFAULT_TOOLS = ["jira", "servicenow", "elk", "slack", "github", "rundeck"]
 
 class Client:
     def __init__(self, session_id, dk_host_url, dk_token, llm_type):
@@ -308,13 +356,17 @@ j.run(JOB_ID, conv_id="", user_info=user_info, iter_id=0)
 
 # =======================================================================================
 
+
+def get_available_tools():
+    return ["jira", "servicenow", "elk", "slack", "github", "rundeck"]
+
 class LLM:
     def __init__(self, session_id=None, tools_enabled=None, dk_host_url=None, dk_token=None, user_info=None, admin_settings=None):
         self.user_info=user_info
         self.admin_settings=admin_settings
         self.dk_token = dk_token
         self.dk_host_url = dk_host_url
-        self.tools_enabled = tools_enabled or DEFAULT_TOOLS
+        self.tools_enabled = tools_enabled or get_available_tools()
         self.messages = []
         self.num_input_bytes = 0
         self.num_output_bytes = 0

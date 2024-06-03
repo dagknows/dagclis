@@ -7,6 +7,17 @@ import psutil
 
 ALLOWED_SHELLS = ["bash", "zsh"]
 
+def read_envfile(envfile):
+    out = {}
+    if os.path.isfile(envfile):
+        lines = [l.strip() for l in open(envfile).read().split("\n") if l.strip()]
+        for l in lines:
+            if "=" in l:
+                pos = l.find("=")
+                k,v = l[:pos], l[pos+1:]
+                out[k.strip()] = v.strip()
+    return out
+
 def disable_urllib_warnings():
     """
     from urllib3 import disable_warnings

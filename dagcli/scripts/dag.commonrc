@@ -1,3 +1,6 @@
+if [ -f "~/.dagknows/tools_env_vars" ]; then
+  source ~/.dagknows/tools_env_vars
+fi
 
 dagknows_curr_profile() {
   if [ -f ~/.dagknows/current_profile ]; then
