@@ -79,12 +79,11 @@ def ai(ctx: typer.Context,
        access_token: str = typer.Option(None, envvar='DagKnowsAccessToken', help='Access token for accessing DagKnows APIs'),
        session_id: str = typer.Argument(None, help = "IDs of the session to push messages to"),
        llm_type: LLMChoices = typer.Option(LLMChoices.OPENAI, help = "The LLM to be used remotely"),
-       show_messages: bool = typer.Option(True, envvar="SHOW_DK_MESSAGES", help = "Whether to show messages from AI or not"),
+       show_messages: bool = typer.Option(False, envvar="SHOW_DK_MESSAGES", help = "Whether to show messages from AI or not"),
        auto_exec: bool = typer.Option(True, help = "Whether to automatically execute commands or prompt first before executing")):
     """ Start an AI session or connect to one. """
     common_params(ctx, dagknows_home, profile, access_token)
     ensure_access_token(ctx)
-    print("Hello World")
     dk_token = ctx.obj.access_token
     dk_host_url = ctx.obj.profile_data["api_host"]
     if dk_host_url.endswith("/api"):
@@ -128,6 +127,7 @@ class Client:
         return {"Authorization": f"Bearer {self.dk_token}"}
 
     def run(self):
+        from prompt_toolkit.styles import Style
         llm = self.llm
         llm.interact("")
         i = 0
@@ -136,7 +136,7 @@ class Client:
             if False and i == 1:
                 user_input = "list latest 10 jira tickets in project DD"
             else:
-                user_input = self.prompt_session.prompt(llm.ask_prompt)
+                user_input = self.prompt_session.prompt(llm.ask_prompt, style=Style.from_dict({'': "#0000FF"}))
             if user_input == "/exit":
                 break
             elif user_input.strip().startswith("/"):
@@ -643,7 +643,6 @@ class RemoteLLM(LLM):
                              headers=self.auth_headers, verify=True,
                              json=payload)
         rj = resp.json()
-        print("Remote Resp: ", rj)
         return rj.get("msg", {})
 
 # =======================================================================================
