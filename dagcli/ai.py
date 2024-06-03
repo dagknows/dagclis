@@ -1,4 +1,3 @@
-
 import urllib
 import datetime
 import subprocess
@@ -80,7 +79,8 @@ def ai(ctx: typer.Context,
        access_token: str = typer.Option(None, envvar='DagKnowsAccessToken', help='Access token for accessing DagKnows APIs'),
        session_id: str = typer.Argument(None, help = "IDs of the session to push messages to"),
        llm_type: LLMChoices = typer.Option(LLMChoices.OPENAI, help = "The LLM to be used remotely"),
-       show_messages: bool = typer.Option(True, envvar="SHOW_DK_MESSAGES", help = "Whether to show messages from AI or not")):
+       show_messages: bool = typer.Option(True, envvar="SHOW_DK_MESSAGES", help = "Whether to show messages from AI or not"),
+       auto_exec: bool = typer.Option(True, help = "Whether to automatically execute commands or prompt first before executing")):
     """ Start an AI session or connect to one. """
     common_params(ctx, dagknows_home, profile, access_token)
     ensure_access_token(ctx)
@@ -91,6 +91,7 @@ def ai(ctx: typer.Context,
         dk_host_url = dk_host_url[:-4]
     client = Client(session_id, dk_host_url, dk_token, llm_type)
     client.in_dkcli = True
+    client.auto_exec = auto_exec
     client.llm.show_dk_messages = show_messages
     client.run()
 
@@ -112,6 +113,7 @@ dk = bcolor.OKGREEN + "DK: " + bcolor.ENDC + "\n"
 class Client:
     def __init__(self, session_id, dk_host_url, dk_token, llm_type):
         self.in_dkcli = False
+        self.auto_exec = True
         self.dk_host_url = dk_host_url
         from prompt_toolkit import PromptSession
         self.dk_token = dk_token
@@ -199,9 +201,12 @@ class Client:
         # This is now that we have the response from the remote agent
         if ai_resp["type"] == "command":
             if self.llm.show_dk_messages: print(dk, ai_resp["message"])
-            # Ask for execution of a command and execute it
-            # permission = input(exe + "Should I execute? (Y/n): ") or ("n")
             permission = "y"
+            if not self.auto_exec:
+                print("Executing command: ", ai_resp["message"])
+                permission = input("Should I execute? (y/N): ") or ("n")
+
+            # Ask for execution of a command and execute it
             if permission in ["Y", "y", "Yes", "YES"]:
                 p = subprocess.run(
                     ai_resp["message"], 
@@ -215,28 +220,32 @@ class Client:
                 if stdout_contents: print(exe, stdout_contents)
                 if stderr_contents: print(exe, stderr_contents)
 
-            # Append to messages
-            exec_output = "type : command\n"
-            exec_output += f"code : {ai_resp['message']}\n"
-            exec_output += f"stdout : {stdout_contents}\n"
-            exec_output += f"stderr : {stderr_contents}"
-            exec_message = {
-                "role" : "user",
-                "content" : exec_output 
-             }
-            self.llm.add_message(exec_message, {
-                 "type": "command",
-                 "code": ai_resp['message'],
-                 "stdout": stdout_contents,
-                 "stderr": stderr_contents,
-             })
+                # Append to messages if executed
+                exec_output = "type : command\n"
+                exec_output += f"code : {ai_resp['message']}\n"
+                exec_output += f"stdout : {stdout_contents}\n"
+                exec_output += f"stderr : {stderr_contents}"
+                exec_message = {
+                    "role" : "user",
+                    "content" : exec_output 
+                 }
+                self.llm.add_message(exec_message, {
+                     "type": "command",
+                     "code": ai_resp['message'],
+                     "stdout": stdout_contents,
+                     "stderr": stderr_contents,
+                 })
 
         elif ai_resp["type"] == "python":
             # Ask for execution of a script and execute it
             if self.llm.show_dk_messages: print(dk, ai_resp["message"])
+            permission = "y"
+            if not self.auto_exec:
+                print("Executing script: \n", ai_resp["message"])
+                permission = input("Should I execute? (y/N): ") or ("n")
+
             # Ask for execution of a command and execute it
             # permission = input(exe + "Should I execute? (Y/n): ") or ("n")
-            permission = "y"
             if permission in ["Y", "y", "Yes", "YES"]:
                 # Let's write this to a file and then execute
                 filename = ''.join(random.choices(string.ascii_uppercase, k=16))
