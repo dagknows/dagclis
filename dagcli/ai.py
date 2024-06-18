@@ -1,5 +1,6 @@
 import urllib
 import datetime
+from collections import defaultdict
 import subprocess
 import time
 import json
@@ -367,7 +368,14 @@ j.run(JOB_ID, conv_id="", user_info=user_info, iter_id=0)
 
 
 def get_available_tools():
-    return ["jira", "servicenow", "elk", "slack", "github", "rundeck"]
+    toolstatus = defaultdict(bool)
+    for toolname, tconf in CONFIGURABLE_TOOLS.items():
+        params = [os.environ[t] for t in tconf["params"] if (os.environ.get(t) or "").strip()]
+        toolstatus[toolname] = len(params) > 0
+
+    available_tools = [t for t,a in toolstatus.items() if a]
+    print("Enabled Tools: ", ", ".join(available_tools))
+    return available_tools
 
 class LLM:
     def __init__(self, session_id=None, tools_enabled=None, dk_host_url=None, dk_token=None, user_info=None, admin_settings=None):
