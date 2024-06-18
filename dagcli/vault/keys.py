@@ -9,16 +9,6 @@ from dagcli.vault.utils import select_role, select_credlabel
 
 app = typer.Typer()
 
-class ConnType(str, Enum):
-    SSH = "ssh"
-    WINRM = "winrm"
-    BASICAUTH = "basicauth"
-    JWT = "jwt"
-
-class LoginType(str, Enum):
-    SSH_KEY = "ssh_key_file"
-    UNAME_PASSWORD = "password"
-
 @app.command()
 def set(ctx: typer.Context,
         key: str = typer.Argument(..., help="Key whose value is to be set in the role"),
@@ -53,13 +43,13 @@ def get(ctx: typer.Context,
         role: str = typer.Option(None, help = "Role in which get details of the keys are to be fetched from.  If not specified returns details of key in all roles it exists in")):
     vapi = ctx.obj.vault_api
     if role:
-        value = vapi.get_keys(role, key)
+        value = vapi.get_key(role, key)
         ## if "ssh_key" in creds: creds.pop("ssh_key")
-        print(f"Key for {role}: ", json.dumps(value, indent=2))
+        print(f"Key for {role}: ", value)
     else:
         all_roles = vapi.list_roles()
         for role in all_roles:
-            keys = vapi.get_keys(role, key)
+            keys = vapi.get_key(role, key)
             if keys:
                 ## if "ssh_key" in creds: creds.pop("ssh_key")
-                print(f"Keys for {role}: ", json.dumps(keys, indent=2))
+                print(f"Keys for {role}: ", keys)

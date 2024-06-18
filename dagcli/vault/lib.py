@@ -81,6 +81,30 @@ class dagknows_proxy_vault():
             return labels
         return []    
 
+    def set_key(self, role, key, value):
+        self.cl.secrets.kv.v2.create_or_update_secret(
+            path="keys/" + key,
+            mount_point=role + '_secrets',
+            secret=value
+        )
+
+    def list_keys(self, role):
+        headers = {"X-Vault-Token" : self.cl.token}
+        url = self.vault_url + '/v1/' + role + '_secrets/data/keys?list=true'
+        resp = requests.get(url=url, verify=False, headers=headers)
+        if 'data' in resp.json():
+            return resp.json()['data'].get('keys', [])
+        return []
+
+    def get_key(self, role, key):
+       keys = self.cl.secrets.kv.v2.read_secret_version(
+           path="keys/" + key,
+           mount_point=role + '_secrets'
+       ) 
+       if 'data' in keys and 'data' in keys['data']:
+          return keys['data']['data']
+       return {}
+
     def add_credentials(self, role, label, username, typ, ssh_key_file_name=None, password=None, conn_type='ssh'):
         if typ == "ssh_key_file" or typ.lower() == 's':
             
