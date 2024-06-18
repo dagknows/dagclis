@@ -52,7 +52,7 @@ def config(ctx: typer.Context,
            profile: str = typer.Option(None, envvar="DagKnowsProfile", help="DagKnows profile to use.  To set a default run `dk profiles set-default`"),
            access_token: str = typer.Option(None, envvar='DagKnowsAccessToken', help='Access token for accessing DagKnows APIs')):
     if tool not in CONFIGURABLE_TOOLS:
-        print("Invalid tool: ", tool)
+        print(f"Invalid tool ({tool}).  Available tools: ", ", ".join(CONFIGURABLE_TOOLS.keys()))
         return
 
     common_params(ctx, dagknows_home, profile, access_token)
@@ -74,7 +74,7 @@ def config(ctx: typer.Context,
 
 
 @app.command()
-def ai(ctx: typer.Context,
+def agent(ctx: typer.Context,
        dagknows_home: str = typer.Option("~/.dagknows", envvar="DagKnowsHomeDir", help="Dir for DagKnows configs"),
        profile: str = typer.Option(None, envvar="DagKnowsProfile", help="DagKnows profile to use.  To set a default run `dk profiles set-default`"),
        access_token: str = typer.Option(None, envvar='DagKnowsAccessToken', help='Access token for accessing DagKnows APIs'),

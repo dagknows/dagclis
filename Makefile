@@ -6,9 +6,10 @@ cleanall:
 	rm -Rf dist ; rm -Rf build ; rm -Rf *.egg-info
 
 build:
-	pip-compile pyproject.toml
 	python -m build . --wheel
 	twine check dist/*
+
+	# pip-compile pyproject.toml
 
 test:
 	coverage run --omit './env/*' --omit '/usr/*' -m unittest tests/*.py
