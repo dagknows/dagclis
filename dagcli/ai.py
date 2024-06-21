@@ -239,6 +239,7 @@ class Client:
 
         elif ai_resp["type"] == "python":
             # Ask for execution of a script and execute it
+            ai_resp["message"] = self.stripGetEnvAndParams(ai_resp["message"])
             if self.llm.show_dk_messages: print(dk, ai_resp["message"])
             permission = "y"
             if not self.auto_exec:
@@ -251,8 +252,17 @@ class Client:
                 # Let's write this to a file and then execute
                 filename = ''.join(random.choices(string.ascii_uppercase, k=16))
                 filename = filename + ".py"
+                if self.llm.show_dk_messages: print(dk, "Saving to file: ", filename)
                 fh = open(filename, "w")
                 fh.write("import os\n")
+                fh.write("def getParamValue(paramname):\n")
+                fh.write("    if paramname in PARAM_VALUES:\n")
+                fh.write("        return PARAM_VALUES[paramname]\n")
+                fh.write("    else:\n")
+                fh.write("        return input(f'Enter value for {paramname}: ')\n")
+                fh.write("\n")
+                fh.write("def getEnvVar(varname): return os.environ.get(varname)\n")
+                fh.write("\n")
                 fh.write(ai_resp["message"])
                 fh.close()
                 #print(f"Stored the code in {filename} and executing now")
@@ -287,8 +297,22 @@ class Client:
             # Just text message. Print it
             print(dk, ai_resp["message"])
 
+    def stripGetEnvAndParams(self, script):
+        lines = script.replace("os.getenv(", "getEnvVar(").split("\n")
+        out = []
+        for l in lines:
+            if l.strip().startswith("def getParamValue("):
+                continue
+            elif l.strip().startswith("return PARAM_VALUES["):
+                continue
+            elif l.strip().startswith("return PARAM_VALUES.get"):
+                continue
+            else:
+                out.append(l)
+        return "\n".join(out)
+
     def execute_task(self, task, params=None):
-        resp = requests.get(f"{self.dk_host_url}/api/tasks/{task['id']}/compile?nomain=true",
+        resp = requests.get(f"{self.dk_host_url}/api/tasks/{task['id']}/compile?nomain=true&run_locally=true",
                             headers=self.auth_headers,
                             verify=True)
         if resp.status_code != 200:
@@ -304,6 +328,18 @@ class Client:
                 fh.write(f"{k} = '{v}'\n")
             else:
                 fh.write(f"{k} = {v}\n")
+        fh.write("import os\n")
+        fh.write("def getParamValue(paramname):\n")
+        for k,v in (params or {}).items():
+            fh.write(f"    if paramname == '{k}': \n")
+            if type(v) is str:
+                fh.write(f"        return '{v}'\n")
+            else:
+                fh.write(f"        return {v}\n")
+        fh.write("    return ""\n")
+        fh.write("\n")
+        fh.write("def getEnvVar(varname): return os.environ.get(varname)\n")
+        fh.write("\n")
         fh.write("\n".join(code["code_lines"]))
         print(f"Stored the code in {filename} and executing now")
 
