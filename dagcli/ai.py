@@ -137,7 +137,8 @@ class Client:
             if False and i == 1:
                 user_input = "list latest 10 jira tickets in project DD"
             else:
-                user_input = self.prompt_session.prompt(llm.ask_prompt, style=Style.from_dict({'': "#0000FF"}))
+                # user_input = self.prompt_session.prompt(llm.ask_prompt, style=Style.from_dict({'': "#0000FF"}))
+                user_input = self.prompt_session.prompt(llm.ask_prompt)
             if user_input == "/exit":
                 break
             elif user_input.strip().startswith("/"):
@@ -442,7 +443,7 @@ class LLM:
             msgs = resp.get("conv", {})
             for idx,msg in sorted([(k,v) for k,v in msgs.items()]):
                 if msg.get("full_message"):
-                    self.messages.append(msg["full_message"])
+                    self.messages.append(msg["full_message"]["msg"])
         else:
             resp = requests.post(self.create_session_url,
                                  headers=self.auth_headers,
@@ -480,7 +481,7 @@ class LLM:
         # now also list the messages
         resp = requests.post(f"{self.conv_mgr_url}/getConvOrCreate",
                              headers=self.auth_headers,
-                             json={"conv_id": session_id,
+                             json={"id": session_id,
                                    "user_info": self.user_info,
                                    "admin_settings": self.admin_settings },
                              verify=True)
